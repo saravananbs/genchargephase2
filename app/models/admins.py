@@ -1,5 +1,6 @@
 # models/admins.py
 from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, ForeignKey
+from sqlalchemy.orm import relationship
 from ..core.database import Base
 import enum
 
@@ -19,3 +20,6 @@ class Admin(Base):
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
     role_id = Column(Integer, ForeignKey("Roles.role_id"))
+
+    # ← ADD THIS LINE
+    role = relationship("Role", back_populates="admins")

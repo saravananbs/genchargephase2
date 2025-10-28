@@ -4,6 +4,7 @@ from .api.routes.auth import router as auth_router
 from .core.database import engine
 from .core.database import Base
 from .middleware.auth import AuthMiddleware
+from app.models import *
 
 app = FastAPI()
 

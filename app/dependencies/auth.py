@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..core.database import get_db
 from ..crud.users import get_user_by_phone
+from ..crud.admin import get_admin_by_phone
 from ..crud.token_revocation import is_token_revoked
 from ..schemas.auth import TokenData
 
@@ -27,6 +28,8 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token at the authroization header")
 
     user = get_user_by_phone(db, phone=token_data.phone_number)
+    if not user:
+        user = get_admin_by_phone(db, phone=token_data.phone_number)
     if user is None or is_token_revoked(db, payload.get("jti")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
