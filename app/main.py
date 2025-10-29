@@ -30,7 +30,7 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(testing_router, prefix="/test", tags=["test"])
 
 # Add middlewares
-app.add_middleware(AuthMiddleware)
+# app.add_middleware(AuthMiddleware)
 
 
 
