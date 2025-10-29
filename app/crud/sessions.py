@@ -1,10 +1,18 @@
 # crud/sessions.py
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.sessions import Session as DBSession
 from uuid import uuid4, UUID
 import datetime
 
-def create_session(db: Session, user_id: int, refresh_token: str, jti: str, expires_at: datetime.datetime):
+
+async def create_session(
+    db: AsyncSession,
+    user_id: int,
+    refresh_token: str,
+    jti: str,
+    expires_at: datetime.datetime
+):
     db_session = DBSession(
         session_id=uuid4(),
         user_id=user_id,
@@ -15,19 +23,26 @@ def create_session(db: Session, user_id: int, refresh_token: str, jti: str, expi
         last_active=datetime.datetime.now(),
         is_active=True
     )
+
     db.add(db_session)
-    db.commit()
-    db.refresh(db_session)
+    await db.commit()
+    await db.refresh(db_session)
     return db_session
 
-def get_session_by_jti(db: Session, jti: str):
-    return db.query(DBSession).filter(DBSession.jti == jti).first()
 
-def revoke_session(db: Session, session_id: UUID):
-    session = db.query(DBSession).filter(DBSession.session_id == session_id).first()
+async def get_session_by_jti(db: AsyncSession, jti: str):
+    result = await db.execute(select(DBSession).where(DBSession.jti == jti))
+    return result.scalars().first()
+
+
+async def revoke_session(db: AsyncSession, session_id: UUID):
+    result = await db.execute(select(DBSession).where(DBSession.session_id == session_id))
+    session = result.scalars().first()
+
     if session:
         session.is_active = False
         session.revoked_at = datetime.datetime.now()
-        db.commit()
-        db.refresh(session)
+        await db.commit()
+        await db.refresh(session)
+
     return session

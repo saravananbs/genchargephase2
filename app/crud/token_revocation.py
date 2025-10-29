@@ -1,21 +1,36 @@
 # crud/token_revocation.py
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.token_revocation import TokenRevocation
 import datetime
 
-def revoke_token(db: Session, jti: str, refresh_token: str, user_id: int, reason: str, expires_at: datetime.datetime):
+
+async def revoke_token(
+    db: AsyncSession,
+    jti: str,
+    refresh_token: str,
+    user_id: int,
+    reason: str,
+    expires_at: datetime.datetime
+):
     revocation = TokenRevocation(
         refresh_token_jti=jti,
         refresh_token=refresh_token,
         user_id=user_id,
-        revoked_at=datetime.datetime.now(),
+        revoked_at=datetime.datetime.utcnow(),
         reason=reason,
         expires_at=expires_at
     )
+
     db.add(revocation)
-    db.commit()
-    db.refresh(revocation)
+    await db.commit()
+    await db.refresh(revocation)
     return revocation
 
-def is_token_revoked(db: Session, jti: str):
-    return db.query(TokenRevocation).filter(TokenRevocation.refresh_token_jti == jti).first() is not None
+
+async def is_token_revoked(db: AsyncSession, jti: str) -> bool:
+    result = await db.execute(
+        select(TokenRevocation).where(TokenRevocation.refresh_token_jti == jti)
+    )
+    token = result.scalars().first()
+    return token is not None

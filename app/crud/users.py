@@ -1,11 +1,12 @@
 # crud/users.py
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
 from ..models.users import User
 from ..schemas.users import UserCreate
-from ..utils.security import get_password_hash
-import datetime
+from datetime import datetime
 
-def create_user(db: Session, user: UserCreate):
+
+async def create_user(db: AsyncSession, user: UserCreate):
     db_user = User(
         name=user.name,
         email=user.email,
@@ -15,24 +16,29 @@ def create_user(db: Session, user: UserCreate):
         user_type=user.user_type,
         status=user.status,
         wallet_balance=user.wallet_balance,
-        created_at=user.created_at
-
+        created_at=user.created_at or datetime.utcnow(),
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(User).filter(User.email == email).first()
 
-def get_user_by_phone(db: Session, phone: str):
-    return db.query(User).filter(User.phone_number == phone).first()
+async def get_user_by_email(db: AsyncSession, email: str):
+    result = await db.execute(select(User).where(User.email == email))
+    return result.scalar_one_or_none()
 
-def update_user_status(db: Session, user_id: int, status: str):
-    user = db.query(User).filter(User.user_id == user_id).first()
+
+async def get_user_by_phone(db: AsyncSession, phone: str):
+    result = await db.execute(select(User).where(User.phone_number == phone))
+    return result.scalar_one_or_none()
+
+
+async def update_user_status(db: AsyncSession, user_id: int, status: str):
+    result = await db.execute(select(User).where(User.user_id == user_id))
+    user = result.scalar_one_or_none()
     if user:
         user.status = status
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
     return user

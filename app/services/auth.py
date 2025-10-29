@@ -1,13 +1,15 @@
 # services/auth.py
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt
 from uuid import uuid4
+from sqlalchemy import select
 import datetime
 
 from ..core.database import get_db
 from ..crud.users import create_user, get_user_by_phone
-from ..crud.admin import get_admin_by_phone
+from ..crud.admin import get_admin_by_phone, get_admin_role_by_phone
 from ..crud.sessions import create_session, revoke_session, get_session_by_jti
 from ..crud.token_revocation import revoke_token, is_token_revoked
 from ..models.users import User
@@ -23,17 +25,14 @@ from ..core.config import settings
 class AuthService:
     otp_store = {}
 
-    def __init__(self, db: Session = Depends(get_db)):
+    def __init__(self, db: AsyncSession = Depends(get_db)):
         self.db = db
 
     # -------------------- USER SIGNUP -------------------- #
     async def signup(self, request: SignupRequest):
         """Signup only allowed for users, not admins"""
-        user = get_user_by_phone(self.db, request.phone_number)
-        admin = get_admin_by_phone(self.db, request.phone_number)
-
-        print(user)
-        print(admin)
+        user = await get_user_by_phone(self.db, request.phone_number)
+        admin = await get_admin_by_phone(self.db, request.phone_number)
 
         if user or admin:
             raise HTTPException(status_code=400, detail="Account already exists")
@@ -59,7 +58,7 @@ class AuthService:
 
         # Create user
         user_data = UserCreate(**stored["data"])
-        user = create_user(self.db, user_data)
+        user = await create_user(self.db, user_data)
 
         # Create tokens
         jti = str(uuid4())
@@ -67,7 +66,7 @@ class AuthService:
         refresh_token = create_refresh_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})
 
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        create_session(self.db, user.user_id, refresh_token, jti, expires_at)
+        await create_session(self.db, user.user_id, refresh_token, jti, expires_at)
 
         del self.otp_store[key]
         return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
@@ -75,8 +74,8 @@ class AuthService:
     # -------------------- COMMON LOGIN (USER + ADMIN) -------------------- #
     async def login(self, request: LoginRequest):
         """Both user and admin can login with phone number"""
-        user = get_user_by_phone(self.db, request.phone_number)
-        admin = get_admin_by_phone(self.db, request.phone_number)
+        user = await get_user_by_phone(self.db, request.phone_number)
+        admin = await get_admin_by_phone(self.db, request.phone_number)
 
         identity_type = None
         identity_id = None
@@ -85,7 +84,8 @@ class AuthService:
             identity_type = "user"
             identity_id = user.user_id
         elif admin and str(admin.status) == "AdminStatus.active":
-            identity_type = "admin"
+            role = await get_admin_role_by_phone(self.db, request.phone_number)
+            identity_type = role.role_name
             identity_id = admin.admin_id
         else:
             raise HTTPException(status_code=400, detail="Invalid or inactive account")
@@ -114,27 +114,32 @@ class AuthService:
 
         # Retrieve model instance
         if identity_type == "user":
-            entity = self.db.query(User).filter(User.user_id == identity_id).first()
+            result = await self.db.execute(select(User).filter(User.user_id == identity_id))
+            entity = result.scalars().first()
         else:
-            entity = self.db.query(Admin).filter(Admin.admin_id == identity_id).first()
-
+            result = await self.db.execute(select(User).filter(User.user_id == identity_id))
+            entity = result.scalars().first()
         jti = str(uuid4())
         access_token = create_access_token(data={"sub": entity.phone_number, "role": identity_type})
         refresh_token = create_refresh_token(data={"sub": entity.phone_number, "jti": jti, "role": identity_type})
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-        create_session(self.db, identity_id, refresh_token, jti, expires_at)
+        await create_session(self.db, identity_id, refresh_token, jti, expires_at)
         del self.otp_store[key]
         return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
     # -------------------- LOGOUT -------------------- #
     async def logout(self, request: LogoutRequest, current_user):
-        session = self.db.query(UserSession).filter(UserSession.refresh_token == request.refresh_token).first()
+        session = await self.db.query(UserSession).filter(UserSession.refresh_token == request.refresh_token).first()
         if not session:
             raise HTTPException(status_code=400, detail="Invalid refresh token")
 
-        revoke_session(self.db, session.session_id)
-        revoke_token(self.db, session.jti, request.refresh_token, current_user.user_id, "logout", session.refresh_token_expires_at)
+        await revoke_session(self.db, session.session_id)
+        refresh_payload = jwt.decode(request.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if refresh_payload['role'] == 'user':
+            await revoke_token(self.db, session.jti, request.refresh_token, current_user.user_id, "logout", session.refresh_token_expires_at)
+        else:
+            await revoke_token(self.db, session.jti, request.refresh_token, current_user.admin_id, "logout", session.refresh_token_expires_at)
         return {"message": "Logged out"}
 
     # -------------------- REFRESH TOKEN -------------------- #
@@ -144,33 +149,36 @@ class AuthService:
             phone: str = payload.get("sub")
             jti: str = payload.get("jti")
             role: str = payload.get("role")
+            print(payload)
             if not phone or not jti or not role:
                 raise HTTPException(status_code=401, detail="Invalid refresh token")
+            
         except JWTError:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-        if is_token_revoked(self.db, jti):
+        if await is_token_revoked(self.db, jti):
             raise HTTPException(status_code=401, detail="Refresh token revoked")
 
-        session = get_session_by_jti(self.db, jti)
+        session = await get_session_by_jti(self.db, jti)
         if not session or not session.is_active or session.refresh_token_expires_at < datetime.datetime.now():
             raise HTTPException(status_code=401, detail="Refresh token expired or invalid")
 
         if role == "user":
-            entity = get_user_by_phone(self.db, phone)
+            entity = await get_user_by_phone(self.db, phone)
         else:
-            entity = get_admin_by_phone(self.db, phone)
+            entity = await get_admin_by_phone(self.db, phone)
 
         if not entity:
             raise HTTPException(status_code=401, detail="Account not found or inactive")
+
 
         new_access_token = create_access_token(data={"sub": phone, "role": role})
         new_jti = str(uuid4())
         new_refresh_token = create_refresh_token(data={"sub": phone, "jti": new_jti, "role": role})
         new_expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-        revoke_token(self.db, session.jti, session.refresh_token, entity.admin_id if role == "admin" else entity.user_id, "token_refresh", session.refresh_token_expires_at)
-        revoke_session(self.db, session.session_id)
-        create_session(self.db, entity.admin_id if role == "admin" else entity.user_id, new_refresh_token, new_jti, new_expires_at)
+        await revoke_token(self.db, session.jti, session.refresh_token, entity.admin_id if role == "admin" else entity.user_id, "token_refresh", session.refresh_token_expires_at)
+        await revoke_session(self.db, session.session_id)
+        await create_session(self.db, entity.admin_id if role == "admin" else entity.user_id, new_refresh_token, new_jti, new_expires_at)
 
         return Token(access_token=new_access_token, refresh_token=new_refresh_token, token_type="bearer")

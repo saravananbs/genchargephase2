@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from ..core.database import Base
 
 class Permission(Base):
-    __tablename__ = 'permissions'
+    __tablename__ = 'Permissions'
 
     permission_id = Column(Integer, primary_key=True)
     resource = Column(String(100), nullable=False, unique=True)

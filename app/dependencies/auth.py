@@ -1,8 +1,9 @@
 # dependencies/auth.py
 from fastapi import Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from sqlalchemy.orm import Session
 from ..core.config import settings
 from ..core.database import get_db
@@ -15,7 +16,7 @@ security = HTTPBearer()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     token = credentials.credentials
     try:
@@ -24,13 +25,16 @@ async def get_current_user(
         if phone is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         token_data = TokenData(phone_number=phone)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token at the authroization header")
 
-    user = get_user_by_phone(db, phone=token_data.phone_number)
+    user = await get_user_by_phone(db, phone=token_data.phone_number)
     if not user:
-        user = get_admin_by_phone(db, phone=token_data.phone_number)
-    if user is None or is_token_revoked(db, payload.get("jti")):
+        user = await get_admin_by_phone(db, phone=token_data.phone_number)
+    flag = await is_token_revoked(db, payload.get("jti"))
+    if user is None or flag:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     return user
