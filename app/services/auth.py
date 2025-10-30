@@ -47,8 +47,11 @@ class AuthService:
         await send_otp(request.phone_number, otp)
         return {"message": f"OTP sent to {request.phone_number}"}
 
-    async def verify_otp_signup(self, request: OTPVerifyRequest):
+    async def verify_otp_signup(self, req: OTPVerifyRequest):
         """Verifies OTP and creates user"""
+        class request:
+            phone_number = req.username
+            otp = req.password
         key = request.phone_number
         stored = self.__class__.otp_store.get(key)
         if not stored or datetime.datetime.now() > stored["expires_at"]:
@@ -101,7 +104,10 @@ class AuthService:
         await send_otp(request.phone_number, otp)
         return {"message": f"OTP sent to {request.phone_number}"}
 
-    async def verify_otp_login(self, request: OTPVerifyRequest):
+    async def verify_otp_login(self, req):
+        class request:
+            phone_number = req.username
+            otp = req.password
         key = request.phone_number
         stored = self.__class__.otp_store.get(key)
         if not stored or datetime.datetime.now() > stored["expires_at"]:
@@ -143,7 +149,7 @@ class AuthService:
         return {"message": "Logged out"}
 
     # -------------------- REFRESH TOKEN -------------------- #
-    async def refresh_token(self, refresh_token: str, current_user):
+    async def refresh_token(self, refresh_token: str):
         try:
             payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
             phone: str = payload.get("sub")

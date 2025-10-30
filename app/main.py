@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     print("Database connection closed.")
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(title="GenCharge - A Moblie Recharge Application" , lifespan=lifespan)
 
 # Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])

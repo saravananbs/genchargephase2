@@ -1,5 +1,6 @@
 # api/routes/auth/__init__.py
 from fastapi import APIRouter, Depends, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from ....schemas.auth import SignupRequest, OTPVerifyRequest, LoginRequest, LogoutRequest
 from ....services.auth import AuthService
 from ....schemas.auth import Token
@@ -20,13 +21,13 @@ async def login(request: LoginRequest, auth_service: AuthService = Depends()):
     return await auth_service.login(request)
 
 @router.post("/verify-otp-login")
-async def verify_otp_login(request: OTPVerifyRequest, auth_service: AuthService = Depends()):
-    return await auth_service.verify_otp_login(request)
+async def verify_otp_login(form_data: OAuth2PasswordRequestForm = Depends(), auth_service: AuthService = Depends()):
+    return await auth_service.verify_otp_login(form_data)
 
 @router.post("/logout")
 async def logout(request: LogoutRequest, current_user: dict = Depends(get_current_user), auth_service: AuthService = Depends()):
     return await auth_service.logout(request, current_user)
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_token: str, current_user: dict = Depends(get_current_user), auth_service: AuthService = Depends()):
-    return await auth_service.refresh_token(refresh_token, current_user)
+async def refresh_token(refresh_token: str, auth_service: AuthService = Depends()):
+    return await auth_service.refresh_token(refresh_token)
