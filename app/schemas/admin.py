@@ -1,33 +1,39 @@
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, EmailStr
-
-# 1. Define the Enum for the 'status' field
-class AdminStatus(str, Enum):
-    ACTIVE = "active"
-    BLOCKED = "blocked"
-    DELETED = "deleted"
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
 
 
-# 2. Define the main Pydantic schema using minimal structure
-class AdminBase(BaseModel):
-    """
-    Simplified Pydantic model for the Admin table, using type hints
-    and the Enum for strict data validation.
-    """
+class AdminCreate(BaseModel):
+    name: str
+    email: EmailStr
+    phone_number: str
+    created_at: Optional[datetime] = datetime.now()
+    updated_at: Optional[datetime] = datetime.now()
+    role_name: str = Field(..., description="Name of the role to assign")
+
+
+class AdminUpdate(BaseModel):
+    name: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+    status: Optional[str] = None
+    role_name: Optional[str] = None   # ✅ Added for role name input
+
+
+class AdminSelfUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+
+
+class AdminOut(BaseModel):
     admin_id: int
     name: str
     email: EmailStr
     phone_number: str
-    status: AdminStatus
+    status: Optional[str] = None
     role_id: int
-    created_at: datetime = datetime.now()
-    updated_at: datetime = datetime.now()
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
-        """
-        Minimal configuration to allow mapping from ORM objects
-        and using string values for the Enum upon serialization.
-        """
         from_attributes = True
-        use_enum_values = True

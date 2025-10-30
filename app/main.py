@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from .api.routes.auth import router as auth_router
 from .api.routes.testing import router as testing_router
+from .api.routes.admin.admin_route import router as admin_router
 from .core.database import engine
 from .core.database import Base
 from app.core.database import engine, Base
@@ -25,6 +26,10 @@ app = FastAPI(title="GenCharge - A Moblie Recharge Application" , lifespan=lifes
 
 # Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
+
+
+
 app.include_router(testing_router, prefix="/test", tags=["test"])
 
 

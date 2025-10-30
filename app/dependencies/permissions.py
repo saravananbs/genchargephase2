@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status, Security
-from fastapi.security import OAuth2PasswordBearer, SecurityScopes
+from fastapi.security import SecurityScopes
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -21,7 +21,6 @@ async def require_scopes(
     Verifies that the current user's role has all required scopes.
     Integrates with Swagger UI's OAuth2 authorize flow automatically.
     """
-
     authenticate_value = f'Bearer scope="{security_scopes.scope_str}"' if security_scopes.scopes else "Bearer"
 
     # ---------- Decode Token ----------
@@ -49,7 +48,6 @@ async def require_scopes(
             detail="No permissions found for this role",
             headers={"WWW-Authenticate": authenticate_value},
         )
-
     # ---------- Build Allowed Scopes ----------
     available_scopes = set()
     for p in permissions:
@@ -61,6 +59,9 @@ async def require_scopes(
             available_scopes.add(f"{p.resource}:edit")
         if p.delete:
             available_scopes.add(f"{p.resource}:delete")
+
+    print(security_scopes.scopes)
+    print(available_scopes)
 
     # ---------- Check Required Scopes ----------
     if not set(security_scopes.scopes).issubset(available_scopes):

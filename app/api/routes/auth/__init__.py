@@ -39,6 +39,7 @@ async def logout(
     current_user: dict = Depends(get_current_user),
     auth_service: AuthService = Depends()
 ):
+    print(current_user)
     return await auth_service.logout(request, response, current_user)
 
 

@@ -163,8 +163,12 @@ class AuthService:
         if not session:
             raise HTTPException(status_code=400, detail="Session not found")
 
+        role = payload.get('role')
         await revoke_session(self.db, session.session_id)
-        await revoke_token(self.db, session.jti, refresh_token, current_user.user_id, "logout", session.refresh_token_expires_at)
+        if role == "user":
+            await revoke_token(self.db, session.jti, refresh_token, current_user.user_id, "logout", session.refresh_token_expires_at)
+        else:
+            await revoke_token(self.db, session.jti, refresh_token, current_user.admin_id, "logout", session.refresh_token_expires_at)
 
         response.delete_cookie("refresh_token")
         return {"message": "Logged out successfully"}

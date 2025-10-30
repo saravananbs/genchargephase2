@@ -17,6 +17,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/verify-otp-login",
                                             "Users:write": "Modify user data",
                                             "Users:delete": "Delete user data",
                                             "Admin:read": "Access admin dashboard",
+                                            "Admin_me:edit": "Edit own profile",
+                                            "Admins:edit": "Allows to edit all the admin"
                                             },
                                     )
 
