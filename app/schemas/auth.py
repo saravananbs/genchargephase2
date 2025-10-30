@@ -1,11 +1,13 @@
 # schemas/auth.py
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Literal
 import uuid
+
 
 class SignupRequest(BaseModel):
     phone_number: str
-    user_type: str  # prepaid/postpaid
+    user_type: Literal["prepaid", "postpaid"]
+
 
 class OTPVerifyRequest(BaseModel):
     # email: Optional[EmailStr] = None
@@ -24,7 +26,7 @@ class RefreshTokenRequest(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    refresh_token: str
+    refresh_token: Optional[str] = None
     token_type: str
 
 class TokenData(BaseModel):

@@ -1,6 +1,4 @@
-# services/auth.py
-from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException, status, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt
 from uuid import uuid4
@@ -17,7 +15,7 @@ from ..models.admins import Admin
 from ..models.sessions import Session as UserSession
 from ..utils.otp import generate_otp, verify_otp, send_otp
 from ..utils.security import create_access_token, create_refresh_token
-from ..schemas.auth import SignupRequest, OTPVerifyRequest, LoginRequest, LogoutRequest, Token
+from ..schemas.auth import SignupRequest, OTPVerifyRequest, LoginRequest, Token
 from ..schemas.users import UserCreate
 from ..core.config import settings
 
@@ -29,8 +27,7 @@ class AuthService:
         self.db = db
 
     # -------------------- USER SIGNUP -------------------- #
-    async def signup(self, request: SignupRequest):
-        """Signup only allowed for users, not admins"""
+    async def signup(self, request: SignupRequest, response: Response):
         user = await get_user_by_phone(self.db, request.phone_number)
         admin = await get_admin_by_phone(self.db, request.phone_number)
 
@@ -47,8 +44,7 @@ class AuthService:
         await send_otp(request.phone_number, otp)
         return {"message": f"OTP sent to {request.phone_number}"}
 
-    async def verify_otp_signup(self, req: OTPVerifyRequest):
-        """Verifies OTP and creates user"""
+    async def verify_otp_signup(self, req: OTPVerifyRequest, response: Response):
         class request:
             phone_number = req.username
             otp = req.password
@@ -59,11 +55,9 @@ class AuthService:
         if not verify_otp(request.otp, stored["otp"]):
             raise HTTPException(status_code=400, detail="Invalid OTP")
 
-        # Create user
         user_data = UserCreate(**stored["data"])
         user = await create_user(self.db, user_data)
 
-        # Create tokens
         jti = str(uuid4())
         access_token = create_access_token(data={"sub": request.phone_number, "role": "user"})
         refresh_token = create_refresh_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})
@@ -71,17 +65,25 @@ class AuthService:
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         await create_session(self.db, user.user_id, refresh_token, jti, expires_at)
 
-        del self.otp_store[key]
-        return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+        # Set HttpOnly cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60
+        )
 
-    # -------------------- COMMON LOGIN (USER + ADMIN) -------------------- #
-    async def login(self, request: LoginRequest):
-        """Both user and admin can login with phone number"""
+        del self.otp_store[key]
+        return Token(access_token=access_token, refresh_token=None, token_type="bearer")
+
+    # -------------------- LOGIN -------------------- #
+    async def login(self, request: LoginRequest, response: Response):
         user = await get_user_by_phone(self.db, request.phone_number)
         admin = await get_admin_by_phone(self.db, request.phone_number)
 
-        identity_type = None
-        identity_id = None
+        identity_type, identity_id = None, None
 
         if user and str(user.status) == "UserStatus.active":
             identity_type = "user"
@@ -104,7 +106,7 @@ class AuthService:
         await send_otp(request.phone_number, otp)
         return {"message": f"OTP sent to {request.phone_number}"}
 
-    async def verify_otp_login(self, req):
+    async def verify_otp_login(self, req, response: Response):
         class request:
             phone_number = req.username
             otp = req.password
@@ -118,13 +120,13 @@ class AuthService:
         identity_type = stored["identity_type"]
         identity_id = stored["identity_id"]
 
-        # Retrieve model instance
         if identity_type == "user":
             result = await self.db.execute(select(User).filter(User.user_id == identity_id))
             entity = result.scalars().first()
         else:
-            result = await self.db.execute(select(User).filter(User.user_id == identity_id))
+            result = await self.db.execute(select(Admin).filter(Admin.admin_id == identity_id))
             entity = result.scalars().first()
+
         jti = str(uuid4())
         access_token = create_access_token(data={"sub": entity.phone_number, "role": identity_type})
         refresh_token = create_refresh_token(data={"sub": entity.phone_number, "jti": jti, "role": identity_type})
@@ -132,33 +134,52 @@ class AuthService:
 
         await create_session(self.db, identity_id, refresh_token, jti, expires_at)
         del self.otp_store[key]
-        return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+
+        # Set HttpOnly cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60
+        )
+
+        return Token(access_token=access_token, refresh_token=None, token_type="bearer")
 
     # -------------------- LOGOUT -------------------- #
-    async def logout(self, request: LogoutRequest, current_user):
-        session = await self.db.query(UserSession).filter(UserSession.refresh_token == request.refresh_token).first()
-        if not session:
-            raise HTTPException(status_code=400, detail="Invalid refresh token")
+    async def logout(self, request: Request, response: Response, current_user):
+        refresh_token = request.cookies.get("refresh_token")
+        if not refresh_token:
+            raise HTTPException(status_code=401, detail="No refresh token cookie found")
 
-        await revoke_session(self.db, session.session_id)
-        refresh_payload = jwt.decode(request.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        if refresh_payload['role'] == 'user':
-            await revoke_token(self.db, session.jti, request.refresh_token, current_user.user_id, "logout", session.refresh_token_expires_at)
-        else:
-            await revoke_token(self.db, session.jti, request.refresh_token, current_user.admin_id, "logout", session.refresh_token_expires_at)
-        return {"message": "Logged out"}
-
-    # -------------------- REFRESH TOKEN -------------------- #
-    async def refresh_token(self, refresh_token: str):
         try:
             payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            phone: str = payload.get("sub")
-            jti: str = payload.get("jti")
-            role: str = payload.get("role")
-            print(payload)
-            if not phone or not jti or not role:
-                raise HTTPException(status_code=401, detail="Invalid refresh token")
-            
+            jti = payload.get("jti")
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+        session = await get_session_by_jti(self.db, jti)
+        if not session:
+            raise HTTPException(status_code=400, detail="Session not found")
+
+        await revoke_session(self.db, session.session_id)
+        await revoke_token(self.db, session.jti, refresh_token, current_user.user_id, "logout", session.refresh_token_expires_at)
+
+        response.delete_cookie("refresh_token")
+        return {"message": "Logged out successfully"}
+
+    # -------------------- REFRESH TOKEN -------------------- #
+    async def refresh_token(self, request: Request, response: Response):
+        refresh_token = request.cookies.get("refresh_token")
+        if not refresh_token:
+            raise HTTPException(status_code=401, detail="Missing refresh token cookie")
+
+        try:
+            payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            phone = payload.get("sub")
+            jti = payload.get("jti")
+            role = payload.get("role")
         except JWTError:
             raise HTTPException(status_code=401, detail="Invalid refresh token")
 
@@ -169,22 +190,28 @@ class AuthService:
         if not session or not session.is_active or session.refresh_token_expires_at < datetime.datetime.now():
             raise HTTPException(status_code=401, detail="Refresh token expired or invalid")
 
-        if role == "user":
-            entity = await get_user_by_phone(self.db, phone)
-        else:
-            entity = await get_admin_by_phone(self.db, phone)
-
+        entity = await (get_user_by_phone(self.db, phone) if role == "user" else get_admin_by_phone(self.db, phone))
         if not entity:
             raise HTTPException(status_code=401, detail="Account not found or inactive")
 
-
+        # Rotate tokens
         new_access_token = create_access_token(data={"sub": phone, "role": role})
         new_jti = str(uuid4())
         new_refresh_token = create_refresh_token(data={"sub": phone, "jti": new_jti, "role": role})
         new_expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
-        await revoke_token(self.db, session.jti, session.refresh_token, entity.admin_id if role == "admin" else entity.user_id, "token_refresh", session.refresh_token_expires_at)
+        await revoke_token(self.db, session.jti, session.refresh_token, entity.user_id if role == "user" else entity.admin_id, "token_refresh", session.refresh_token_expires_at)
         await revoke_session(self.db, session.session_id)
-        await create_session(self.db, entity.admin_id if role == "admin" else entity.user_id, new_refresh_token, new_jti, new_expires_at)
+        await create_session(self.db, entity.user_id if role == "user" else entity.admin_id, new_refresh_token, new_jti, new_expires_at)
 
-        return Token(access_token=new_access_token, refresh_token=new_refresh_token, token_type="bearer")
+        # Update cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=7 * 24 * 60 * 60
+        )
+
+        return Token(access_token=new_access_token, refresh_token=None, token_type="bearer")
