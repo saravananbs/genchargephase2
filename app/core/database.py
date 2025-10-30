@@ -7,7 +7,7 @@ from .config import settings
 DATABASE_URL = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
 # Create an async engine
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+engine = create_async_engine(DATABASE_URL)
 
 # Create async session
 AsyncSessionLocal = sessionmaker(

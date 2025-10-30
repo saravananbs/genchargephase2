@@ -39,7 +39,6 @@ async def get_current_user(
         )
 
     # Try fetching both user or admin
-    print(payload)
     user = await get_user_by_phone(db, phone=token_data.phone_number)
     if not user:
         user = await get_admin_by_phone(db, phone=token_data.phone_number)

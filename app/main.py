@@ -4,8 +4,6 @@ from .api.routes.auth import router as auth_router
 from .api.routes.testing import router as testing_router
 from .core.database import engine
 from .core.database import Base
-from .middleware.auth import AuthMiddleware
-import asyncio
 from app.core.database import engine, Base
 from contextlib import asynccontextmanager
 from app.models import *
@@ -29,8 +27,6 @@ app = FastAPI(title="GenCharge - A Moblie Recharge Application" , lifespan=lifes
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(testing_router, prefix="/test", tags=["test"])
 
-# Add middlewares
-# app.add_middleware(AuthMiddleware)
 
 
 
