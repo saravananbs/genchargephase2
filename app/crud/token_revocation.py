@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.token_revocation import TokenRevocation
 import datetime
 
-
 async def revoke_token(
     db: AsyncSession,
     jti: str,
@@ -26,7 +25,6 @@ async def revoke_token(
     await db.commit()
     await db.refresh(revocation)
     return revocation
-
 
 async def is_token_revoked(db: AsyncSession, jti: str) -> bool:
     result = await db.execute(

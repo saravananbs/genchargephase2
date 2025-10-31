@@ -10,7 +10,6 @@ from ..crud.admin import get_admin_by_phone
 from ..crud.token_revocation import is_token_revoked
 from ..schemas.auth import TokenData
 
-# OAuth2PasswordBearer expects a token URL (used by the docs UI)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/verify-otp-login",
                                      scopes={
                                             "Users:read": "Read user data",
@@ -29,6 +28,7 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         phone: str = payload.get("sub")
+
         if phone is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
@@ -40,7 +40,6 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token at the authorization header"
         )
 
-    # Try fetching both user or admin
     user = await get_user_by_phone(db, phone=token_data.phone_number)
     if not user:
         user = await get_admin_by_phone(db, phone=token_data.phone_number)
@@ -51,12 +50,10 @@ async def get_current_user(
 
     return user
 
-
 async def get_current_active_user(current_user: dict = Depends(get_current_user)):
     if current_user.status != "active":
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
-
 
 async def role_required(required_role: str):
     async def role_checker(current_user: dict = Depends(get_current_active_user)):

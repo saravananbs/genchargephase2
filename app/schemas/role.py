@@ -2,7 +2,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-# ---------- Permission Schemas ----------
 class PermissionBase(BaseModel):
     permission_id: int
     resource: str
@@ -14,7 +13,6 @@ class PermissionBase(BaseModel):
     class Config:
         from_attributes = True
 
-# ---------- Role Schemas ----------
 class RoleBase(BaseModel):
     role_name: str
 

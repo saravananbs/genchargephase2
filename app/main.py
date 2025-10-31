@@ -1,8 +1,8 @@
 # main.py
 from fastapi import FastAPI
-from .api.routes.auth import router as auth_router
+from .api.routes.auth.auth_router import router as auth_router
 from .api.routes.testing import router as testing_router
-from .api.routes.admin.admin_route import router as admin_router
+from .api.routes.admin.admin_router import router as admin_router
 from .api.routes.roles.role_router import router as role_router
 from .core.database import engine
 from .core.database import Base
@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
     yield 
 
-    # --- Shutdown logic (optional) ---
+    # --- Shutdown logic ---
     await engine.dispose()
     print("Database connection closed.")
 

@@ -10,7 +10,6 @@ from ..core.config import settings
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Skip auth for /auth endpoints
         if request.url.path.startswith("/auth"):
             return await call_next(request)
 
@@ -48,5 +47,4 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # If all checks pass
         return await call_next(request)

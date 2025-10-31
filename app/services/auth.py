@@ -1,19 +1,15 @@
-from fastapi import Depends, HTTPException, status, Request, Response
+from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt
 from uuid import uuid4
-from sqlalchemy import select
 import datetime
 
 from ..core.database import get_db
-from ..crud.users import create_user, get_user_by_phone
-from ..crud.admin import get_admin_by_phone, get_admin_role_by_phone
+from ..crud.users import create_user, get_user_by_phone, get_user_by_id
+from ..crud.admin import get_admin_by_phone, get_admin_role_by_phone, get_admin_by_id
 from ..crud.sessions import create_session, revoke_session, get_session_by_jti
 from ..crud.token_revocation import revoke_token, is_token_revoked
-from ..models.users import User
-from ..models.admins import Admin
-from ..models.sessions import Session as UserSession
-from ..utils.otp import generate_otp, verify_otp, send_otp
+from ..utils.otp import verify_otp, send_otp
 from ..utils.security import create_access_token, create_refresh_token
 from ..schemas.auth import SignupRequest, OTPVerifyRequest, LoginRequest, Token
 from ..schemas.users import UserCreate
@@ -65,7 +61,6 @@ class AuthService:
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         await create_session(self.db, user.user_id, refresh_token, jti, expires_at)
 
-        # Set HttpOnly cookie
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -121,11 +116,9 @@ class AuthService:
         identity_id = stored["identity_id"]
 
         if identity_type == "user":
-            result = await self.db.execute(select(User).filter(User.user_id == identity_id))
-            entity = result.scalars().first()
+            entity = await get_user_by_id(self.db, identity_id)
         else:
-            result = await self.db.execute(select(Admin).filter(Admin.admin_id == identity_id))
-            entity = result.scalars().first()
+            entity = await get_admin_by_id(self.db, identity_id)
 
         jti = str(uuid4())
         access_token = create_access_token(data={"sub": entity.phone_number, "role": identity_type})
@@ -135,7 +128,6 @@ class AuthService:
         await create_session(self.db, identity_id, refresh_token, jti, expires_at)
         del self.otp_store[key]
 
-        # Set HttpOnly cookie
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -198,7 +190,6 @@ class AuthService:
         if not entity:
             raise HTTPException(status_code=401, detail="Account not found or inactive")
 
-        # Rotate tokens
         new_access_token = create_access_token(data={"sub": phone, "role": role})
         new_jti = str(uuid4())
         new_refresh_token = create_refresh_token(data={"sub": phone, "jti": new_jti, "role": role})
@@ -208,7 +199,6 @@ class AuthService:
         await revoke_session(self.db, session.session_id)
         await create_session(self.db, entity.user_id if role == "user" else entity.admin_id, new_refresh_token, new_jti, new_expires_at)
 
-        # Update cookie
         response.set_cookie(
             key="refresh_token",
             value=new_refresh_token,

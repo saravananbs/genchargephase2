@@ -25,5 +25,4 @@ class User(Base):
     wallet_balance = Column(Numeric(10, 2), default=0)
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
-    # role_id = Column(Integer)
-    # hashed_password = Column(String)  # Added for potential password, but since OTP, maybe not used
+    

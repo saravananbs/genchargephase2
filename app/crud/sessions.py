@@ -5,7 +5,6 @@ from ..models.sessions import Session as DBSession
 from uuid import uuid4, UUID
 import datetime
 
-
 async def create_session(
     db: AsyncSession,
     user_id: int,
@@ -29,11 +28,9 @@ async def create_session(
     await db.refresh(db_session)
     return db_session
 
-
 async def get_session_by_jti(db: AsyncSession, jti: str):
     result = await db.execute(select(DBSession).where(DBSession.jti == jti))
     return result.scalars().first()
-
 
 async def revoke_session(db: AsyncSession, session_id: UUID):
     result = await db.execute(select(DBSession).where(DBSession.session_id == session_id))

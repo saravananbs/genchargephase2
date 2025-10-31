@@ -14,12 +14,9 @@ class Permission(Base):
     delete = Column(Boolean, nullable=False, default=False)
     edit = Column(Boolean, nullable=False, default=False)
 
-    # Reverse relationship: explicitly specify foreign_keys
     role_permissions = relationship(
         "RolePermission",
         back_populates="permission",
         foreign_keys=[RolePermission.permission_id]  # ← Critical fix
     )
-    # Relationships
-    # One Permission can be linked to many roles via RolePermission entries
-    # role_permissions = relationship("RolePermission", back_populates="permission")
+    

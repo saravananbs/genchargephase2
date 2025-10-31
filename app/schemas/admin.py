@@ -18,7 +18,7 @@ class AdminUpdate(BaseModel):
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = None
     status: Optional[str] = None
-    role_name: Optional[str] = None   # ✅ Added for role name input
+    role_name: Optional[str] = None  
 
 
 class AdminSelfUpdate(BaseModel):

@@ -4,7 +4,6 @@ from ....core.database import get_db
 from ....dependencies.auth import get_current_user
 from ....dependencies.permissions import require_scopes
 from ....schemas.admin import AdminCreate, AdminUpdate, AdminOut, AdminSelfUpdate
-from ....schemas import exc
 from ....crud import admin as admin_crud
 from typing import List
 

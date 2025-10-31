@@ -2,16 +2,13 @@ from fastapi import Depends, HTTPException, status, Security
 from fastapi.security import SecurityScopes
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 from ..core.config import settings
 from ..core.database import get_db
 from ..crud.permissions import get_permissions_by_role
 from .auth import oauth2_scheme
 
-# ✅ OAuth2PasswordBearer handles both token retrieval and scope declarations
 
 
-# ✅ Main permission dependency
 async def require_scopes(
     security_scopes: SecurityScopes,
     token: str = Security(oauth2_scheme),
@@ -23,7 +20,6 @@ async def require_scopes(
     """
     authenticate_value = f'Bearer scope="{security_scopes.scope_str}"' if security_scopes.scopes else "Bearer"
 
-    # ---------- Decode Token ----------
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         role_name = payload.get("role")
@@ -40,7 +36,6 @@ async def require_scopes(
             headers={"WWW-Authenticate": authenticate_value},
         )
 
-    # ---------- Fetch Role Permissions ----------
     permissions = await get_permissions_by_role(db, role_name)
     if not permissions:
         raise HTTPException(
@@ -48,7 +43,6 @@ async def require_scopes(
             detail="No permissions found for this role",
             headers={"WWW-Authenticate": authenticate_value},
         )
-    # ---------- Build Allowed Scopes ----------
     available_scopes = set()
     for p in permissions:
         if p.read:
@@ -63,7 +57,6 @@ async def require_scopes(
     print(security_scopes.scopes)
     print(available_scopes)
 
-    # ---------- Check Required Scopes ----------
     if not set(security_scopes.scopes).issubset(available_scopes):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -71,4 +64,4 @@ async def require_scopes(
             headers={"WWW-Authenticate": authenticate_value},
         )
 
-    return True  # ✅ Authorized
+    return True  

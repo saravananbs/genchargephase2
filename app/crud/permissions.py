@@ -21,8 +21,6 @@ async def get_permissions_by_role(db: AsyncSession, role_name: str):
     result = await db.execute(stmt)
     return result.scalars().all()
 
-from sqlalchemy.future import select
-
 async def get_permissions(db: AsyncSession):
     result = await db.execute(select(Permission))
     return result.scalars().all()

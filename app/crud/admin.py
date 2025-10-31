@@ -1,10 +1,10 @@
 # crud/admins.py
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.admins import Admin
 from ..models.roles import Role
-from ..schemas.admin import AdminCreate, AdminUpdate, AdminSelfUpdate
+from ..schemas.admin import AdminCreate, AdminUpdate
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -15,7 +15,7 @@ async def get_admin_by_phone(db: AsyncSession, phone: str):
 async def get_admin_role_by_phone(db: AsyncSession, phone: str):
     result = await db.execute(
         select(Admin)
-        .options(selectinload(Admin.role))  # ✅ eager load role
+        .options(selectinload(Admin.role))  
         .where(Admin.phone_number == phone)
     )
     admin = result.scalars().first()
@@ -23,24 +23,16 @@ async def get_admin_role_by_phone(db: AsyncSession, phone: str):
         return admin.role
     return None
 
-
-
-
-# --- Get Admins ---
 async def get_admins(db: AsyncSession):
     result = await db.execute(select(Admin).options(selectinload(Admin.role)))
     return result.scalars().all()
-
 
 async def get_admin_by_id(db: AsyncSession, admin_id: int):
     result = await db.execute(select(Admin).where(Admin.admin_id == admin_id))
     return result.scalar_one_or_none()
 
-
-# --- Create Admin ---
 async def create_admin(db: AsyncSession, admin_data: AdminCreate):
     try:
-        # ✅ Check for duplicate email or phone before insert
         result = await db.execute(
             select(Admin).where(
                 (Admin.email == admin_data.email)
@@ -56,7 +48,6 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
 
         data = admin_data.model_dump()
 
-        # ✅ Handle role_name → role_id mapping
         if "role_name" in data and data["role_name"]:
             role_result = await db.execute(
                 select(Role).where(Role.role_name == data["role_name"])
@@ -74,7 +65,6 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
             data["role_id"] = role.role_id
             del data["role_name"]
 
-        # ✅ Create new admin
         new_admin = Admin(**data)
         db.add(new_admin)
         await db.commit()
@@ -116,10 +106,6 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
             detail=f"Unexpected error: {str(e)}",
         )
 
-
-
-
-# --- Delete Admin by phone ---
 async def delete_admin_by_phone(db: AsyncSession, phone_number: str):
     admin = await get_admin_by_phone(db, phone_number)
     if not admin:
@@ -129,8 +115,6 @@ async def delete_admin_by_phone(db: AsyncSession, phone_number: str):
     await db.commit()
     return {"message": f"Admin with phone {phone_number} deleted"}
 
-
-# --- Update Admin by phone (includes role name check) ---
 async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data: AdminUpdate):
     try:
         admin = await get_admin_by_phone(db, phone_number)
@@ -139,7 +123,6 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
 
         data = admin_data.model_dump(exclude_unset=True)
 
-        # ✅ Handle role_name → role_id resolution
         if "role_name" in data and data["role_name"]:
             role_result = await db.execute(
                 select(Role).where(Role.role_name == data["role_name"])
@@ -158,7 +141,6 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
             data["role_id"] = role.role_id
             del data["role_name"]
 
-        # ✅ Apply updates
         for key, value in data.items():
             setattr(admin, key, value)
 
@@ -194,7 +176,6 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
         )
 
     except HTTPException:
-        # Already well-formed; re-raise to preserve status code
         raise
 
     except Exception as e:
@@ -204,13 +185,10 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
             detail=f"Unexpected error: {str(e)}",
         )
 
-
-# --- Generic update by ID (used for /admin/me) ---
 async def update_admin(db: AsyncSession, admin_id: int, admin_data):
     try:
         data = admin_data.model_dump(exclude_unset=True)
 
-        # ✅ Update the admin record
         query = (
             update(Admin)
             .where(Admin.admin_id == admin_id)
@@ -229,7 +207,6 @@ async def update_admin(db: AsyncSession, admin_id: int, admin_data):
         await db.commit()
         return updated_admin
 
-    # --- Unique constraint or duplicate key errors ---
     except IntegrityError as e:
         await db.rollback()
 
@@ -245,7 +222,6 @@ async def update_admin(db: AsyncSession, admin_id: int, admin_data):
             detail=detail,
         )
 
-    # --- Invalid input / schema mismatch ---
     except ValueError as e:
         await db.rollback()
         raise HTTPException(
@@ -253,7 +229,6 @@ async def update_admin(db: AsyncSession, admin_id: int, admin_data):
             detail=f"Invalid input: {str(e)}",
         )
 
-    # --- General SQLAlchemy-related issues ---
     except SQLAlchemyError as e:
         await db.rollback()
         raise HTTPException(
@@ -261,11 +236,9 @@ async def update_admin(db: AsyncSession, admin_id: int, admin_data):
             detail=f"Database error: {str(e)}",
         )
 
-    # --- Re-raise FastAPI's own HTTP exceptions (like 404) ---
     except HTTPException:
         raise
 
-    # --- Catch any other unhandled Python-level errors ---
     except Exception as e:
         await db.rollback()
         raise HTTPException(

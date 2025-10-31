@@ -12,10 +12,9 @@ class Role(Base):
 
     admins = relationship("Admin", back_populates="role")
     
-    # Reverse relationship: explicitly specify foreign_keys
     role_permissions = relationship(
         "RolePermission",
         back_populates="role",
         cascade="all, delete-orphan",
-        foreign_keys=[RolePermission.role_id]  # ← Also good to specify
+        foreign_keys=[RolePermission.role_id]  
     )
