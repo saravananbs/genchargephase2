@@ -7,18 +7,12 @@ class RolePermission(Base):
     __tablename__ = 'RolePermissions'
 
     id = Column(Integer, primary_key=True)
+    role_id = Column(Integer, ForeignKey('Roles.role_id'), nullable=False)
+    permission_id = Column(Integer, ForeignKey('Permissions.permission_id'), nullable=False)
 
-    # Foreign Keys
-    role_id = Column(Integer, ForeignKey('Roles.role_id'), nullable=False)        # ← Fix
-    permission_id = Column(Integer, ForeignKey('permissions.permission_id'), nullable=False)
+    # Forward relationships
+    role = relationship("Role", back_populates="role_permissions")
+    permission = relationship("Permission", back_populates="role_permissions")
 
-    # Composite Unique Constraint for (role_id, permission_id)
-    # __table_args__ = (
-    #     UniqueConstraint('role_id', 'permission_id', name='_role_permission_uc'),
-    # )
-
-    # # Relationships
-    # role = relationship("Role", back_populates="role_permissions")
-    # permission = relationship("Permission", back_populates="role_permissions")
 
     
