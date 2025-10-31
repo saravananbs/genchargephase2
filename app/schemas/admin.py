@@ -31,7 +31,7 @@ class AdminOut(BaseModel):
     email: EmailStr
     phone_number: str
     status: Optional[str] = None
-    role_id: int
+    role_id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
