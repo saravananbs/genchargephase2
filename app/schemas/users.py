@@ -89,3 +89,22 @@ class UserRegisterResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UserPreferenceBase(BaseModel):
+    email_notification: bool = True
+    sms_notification: bool = True
+    marketing_communication: bool = False
+    recharge_remainders: bool = True
+    promotional_offers: bool = False
+    transactional_alerts: bool = True
+    data_analytics: bool = True
+    third_party_integrations: bool = False
+
+class UserPreferenceUpdate(UserPreferenceBase):
+    pass
+
+class UserPreferenceResponse(UserPreferenceBase):
+    user_id: int
+
+    class Config:
+        orm_mode = True

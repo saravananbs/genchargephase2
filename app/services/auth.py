@@ -5,7 +5,7 @@ from uuid import uuid4
 import datetime
 
 from ..core.database import get_db
-from ..crud.users import create_user, get_user_by_phone, get_user_by_id
+from ..crud.users import create_user, get_user_by_phone, get_user_by_id, create_user_preference
 from ..crud.admin import get_admin_by_phone, get_admin_role_by_phone, get_admin_by_id
 from ..crud.sessions import create_session, revoke_session, get_session_by_jti
 from ..crud.token_revocation import revoke_token, is_token_revoked
@@ -53,6 +53,7 @@ class AuthService:
 
         user_data = UserCreatenew(**stored["data"])
         user = await create_user(self.db, user_data)
+        user_pref = await create_user_preference(self.db, user.user_id, {})
 
         jti = str(uuid4())
         access_token = create_access_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})

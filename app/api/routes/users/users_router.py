@@ -7,9 +7,11 @@ from ....dependencies.auth import get_current_user
 from ....dependencies.permissions import require_scopes
 from ....models.users import User
 from ....crud import users as crud_user
+from ....services.user import update_preferences_service
 from ....schemas.users import (
     UserResponse, UserListFilters,
-    UserEditEmail, UserSwitchType, UserDeactivate, UserRegisterRequest, UserRegisterResponse
+    UserEditEmail, UserSwitchType, UserDeactivate, UserRegisterRequest, UserRegisterResponse,
+    UserPreferenceUpdate, UserPreferenceResponse
 )
 
 router = APIRouter()
@@ -163,4 +165,23 @@ async def delete_my_account(
     if not deleted:
         raise HTTPException(status_code=404, detail="User not found")
     return deleted
+
+@router.get("/preference", response_model=UserPreferenceResponse)
+async def update_user_preferences(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+):
+    result = await crud_user.get_user_preference(db, current_user.user_id)
+    return result
+
+@router.put("/preference", response_model=UserPreferenceResponse)
+async def update_user_preferences(
+    data: UserPreferenceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+):
+    updated_pref = await update_preferences_service(db, current_user.user_id, data)
+    return updated_pref
 

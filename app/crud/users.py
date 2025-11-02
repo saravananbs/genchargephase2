@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, or_, asc, desc
 from ..models.users import User, UserStatus, UserType
 from ..models.users_archieve import UserArchieve
-from ..schemas.users import UserCreatenew
-from ..schemas.users import UserListFilters
+from ..models.user_preference import UserPreference
+from ..schemas.users import UserCreatenew, UserListFilters, UserPreferenceUpdate
 from datetime import datetime
 from typing import Optional, Sequence
 from fastapi import HTTPException, status
@@ -257,3 +257,28 @@ async def register_user(db: AsyncSession, current_user: User, name: str, email: 
 
     updated_user = await db.get(User, current_user.user_id)
     return updated_user
+
+async def get_user_preference(db: AsyncSession, user_id: int):
+    result = await db.execute(select(UserPreference).where(UserPreference.user_id == user_id))
+    return result.scalars().first()
+
+
+async def create_user_preference(db: AsyncSession, user_id: int, data: UserPreferenceUpdate):
+    preference = UserPreference(user_id=user_id, **data.model_dump())
+    db.add(preference)
+    await db.commit()
+    await db.refresh(preference)
+    return preference
+
+
+async def update_user_preference(db: AsyncSession, user_id: int, data: UserPreferenceUpdate):
+    preference = await get_user_preference(db, user_id)
+    if not preference:
+        return await create_user_preference(db, user_id, data)
+
+    for field, value in data.model_dump().items():
+        setattr(preference, field, value)
+
+    await db.commit()
+    await db.refresh(preference)
+    return preference
