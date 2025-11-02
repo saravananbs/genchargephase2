@@ -15,7 +15,6 @@ from ....schemas.users import (
 router = APIRouter()
 
 # ---------- ADMIN ROUTES ----------
-
 @router.get("/admin", response_model=List[UserResponse])
 async def list_users(
     request: Request,
@@ -87,16 +86,6 @@ async def delete_user(
 
 
 # ---------- USER ROUTES ----------
-@router.post("/register", response_model=UserRegisterResponse)
-async def register_user_route(
-    data: UserRegisterRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
-):
-    user = await crud_user.register_user(db, current_user, data.name, data.email, data.referral_code)
-    return user
-
 @router.get("/me", response_model=UserResponse)
 async def get_my_info(
     request: Request,
@@ -105,7 +94,6 @@ async def get_my_info(
     authorized = Security(require_scopes, scopes=["User"], use_cache=False)
 ):
     return current_user
-
 
 @router.put("/me/email", response_model=UserResponse)
 async def update_email(
@@ -121,7 +109,6 @@ async def update_email(
         raise HTTPException(status_code=404, detail="User not found")
     return updated
 
-
 @router.put("/me/switch-type", response_model=UserResponse)
 async def switch_user_type(
     request: Request,
@@ -135,7 +122,6 @@ async def switch_user_type(
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
     return updated
-
 
 @router.post("/me/deactivate", response_model=UserResponse)
 async def deactivate_account(

@@ -55,7 +55,7 @@ class AuthService:
         user = await create_user(self.db, user_data)
 
         jti = str(uuid4())
-        access_token = create_access_token(data={"sub": request.phone_number, "role": "user"})
+        access_token = create_access_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})
         refresh_token = create_refresh_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})
 
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
@@ -121,7 +121,7 @@ class AuthService:
             entity = await get_admin_by_id(self.db, identity_id)
 
         jti = str(uuid4())
-        access_token = create_access_token(data={"sub": entity.phone_number, "role": identity_type})
+        access_token = create_access_token(data={"sub": entity.phone_number, "jti": jti, "role": identity_type})
         refresh_token = create_refresh_token(data={"sub": entity.phone_number, "jti": jti, "role": identity_type})
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
