@@ -190,7 +190,7 @@ class AuthService:
         if not entity:
             raise HTTPException(status_code=401, detail="Account not found or inactive")
 
-        new_access_token = create_access_token(data={"sub": phone, "role": role})
+        new_access_token = create_access_token(data={"sub": phone, "jti": new_jti, "role": role})
         new_jti = str(uuid4())
         new_refresh_token = create_refresh_token(data={"sub": phone, "jti": new_jti, "role": role})
         new_expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
