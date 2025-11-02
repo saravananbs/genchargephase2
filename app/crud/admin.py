@@ -1,12 +1,13 @@
 # crud/admins.py
-from sqlalchemy import select, update
+from sqlalchemy import select, update, desc, asc
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.admins import Admin
 from ..models.roles import Role
-from ..schemas.admin import AdminCreate, AdminUpdate
+from ..schemas.admin import AdminCreate, AdminUpdate, AdminListFilters
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from typing import Sequence
 
 async def get_admin_by_phone(db: AsyncSession, phone: str):
     result = await db.execute(select(Admin).where(Admin.phone_number == phone))
@@ -23,8 +24,26 @@ async def get_admin_role_by_phone(db: AsyncSession, phone: str):
         return admin.role
     return None
 
-async def get_admins(db: AsyncSession):
-    result = await db.execute(select(Admin).options(selectinload(Admin.role)))
+async def get_admins(db: AsyncSession, filters: AdminListFilters) -> Sequence[Admin]:
+    stmt = select(Admin).options(selectinload(Admin.role))
+    if filters.name:
+        stmt = stmt.where(Admin.name.ilike(f"%{filters.name}%"))
+    if filters.email:
+        stmt = stmt.where(Admin.email.ilike(f"%{filters.email}%"))
+    if filters.phone_number:
+        stmt = stmt.where(Admin.phone_number.ilike(f"%{filters.phone_number}%"))
+    if filters.status:
+        stmt = stmt.where(Admin.status == filters.status)
+    if filters.role_name:
+        stmt = stmt.where(Role.role_name.ilike(f"%{filters.role_name}%"))
+    if filters.sort_by:
+        column = getattr(Admin, filters.sort_by, None)
+        if column is not None:
+            stmt = stmt.order_by(desc(column) if filters.sort_order == "desc" else asc(column))
+    else:
+        stmt = stmt.order_by(desc(Admin.created_at))
+    stmt = stmt.offset(filters.skip).limit(filters.limit)
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 async def get_admin_by_id(db: AsyncSession, admin_id: int):
@@ -88,7 +107,7 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
     except ValueError as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid input: {str(e)}",
         )
 
@@ -164,7 +183,7 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
     except ValueError as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid input: {str(e)}",
         )
 
@@ -225,7 +244,7 @@ async def update_admin(db: AsyncSession, admin_id: int, admin_data):
     except ValueError as e:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid input: {str(e)}",
         )
 

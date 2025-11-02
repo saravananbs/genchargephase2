@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ....core.database import get_db
 from ....dependencies.auth import get_current_user
 from ....dependencies.permissions import require_scopes
-from ....schemas.admin import AdminCreate, AdminUpdate, AdminOut, AdminSelfUpdate
+from ....schemas.admin import AdminCreate, AdminUpdate, AdminOut, AdminSelfUpdate, AdminListFilters
 from ....crud import admin as admin_crud
 from typing import List
 
@@ -13,10 +13,11 @@ router = APIRouter()
 @router.get("/", response_model=List[AdminOut])
 async def list_admins(
     db = Depends(get_db),
+    filters: AdminListFilters = Depends(),
     current_user = Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Admins:read"], use_cache=False)
 ):
-    admins = await admin_crud.get_admins(db)
+    admins = await admin_crud.get_admins(db, filters)
     return [AdminOut.model_validate(admin, from_attributes=True) for admin in admins]
 
 
@@ -73,7 +74,7 @@ async def get_self_admin(
 
 
 # ✅ PATCH /admin — Update self (without role or phone change)
-@router.patch("/by_phone/me", response_model=AdminOut)
+@router.patch("/me", response_model=AdminOut)
 async def update_self_admin(
     data: AdminSelfUpdate,
     db = Depends(get_db),

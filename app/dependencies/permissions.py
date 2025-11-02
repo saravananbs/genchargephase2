@@ -29,6 +29,15 @@ async def require_scopes(
                 detail="Missing role in token",
                 headers={"WWW-Authenticate": authenticate_value},
             )
+        if role_name == "user":
+            if security_scopes.scope_str == "User":
+                return True
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Want to be our admin? You know how to contact us!",
+                    headers={"WWW-Authenticate": authenticate_value},
+                )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

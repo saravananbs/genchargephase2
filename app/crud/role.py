@@ -1,23 +1,37 @@
 # crud/roles.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import delete
+from sqlalchemy import delete, desc, asc
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from ..models.roles import Role
 from ..models.permissions import Permission
 from ..models.roles_permissions import RolePermission
-from typing import Optional, List
+from ..schemas.role import RoleListFilters
+from typing import Optional, List, Sequence
 
-async def get_all_roles(db: AsyncSession):
-    result = await db.execute(
+async def get_all_roles(db: AsyncSession, filters: RoleListFilters) -> Sequence[Role]:
+    stmt = (
         select(Role)
         .options(
-            selectinload(Role.role_permissions)
-            .selectinload(RolePermission.permission)
+            selectinload(Role.role_permissions).selectinload(RolePermission.permission)
         )
+        .join(RolePermission, Role.role_id == RolePermission.role_id, isouter=True)
+        .join(Permission, RolePermission.permission_id == Permission.permission_id, isouter=True)
     )
+    if filters.role_name:
+        stmt = stmt.where(Role.role_name.ilike(f"%{filters.role_name}%"))
+    if filters.permission_resource:
+        stmt = stmt.where(Permission.resource.ilike(f"%{filters.permission_resource}%"))
+    if filters.sort_by:
+        column = getattr(Role, filters.sort_by, None)
+        if column is not None:
+            stmt = stmt.order_by(desc(column) if filters.sort_order == "desc" else asc(column))
+    else:
+        stmt = stmt.order_by(asc(Role.role_name))
+    stmt = stmt.offset(filters.skip).limit(filters.limit)
+    result = await db.execute(stmt)
     roles = result.scalars().unique().all()
     return roles
 

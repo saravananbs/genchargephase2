@@ -12,7 +12,7 @@ from ..crud.token_revocation import revoke_token, is_token_revoked
 from ..utils.otp import verify_otp, send_otp
 from ..utils.security import create_access_token, create_refresh_token
 from ..schemas.auth import SignupRequest, OTPVerifyRequest, LoginRequest, Token
-from ..schemas.users import UserCreate
+from ..schemas.users import UserCreatenew
 from ..core.config import settings
 
 
@@ -51,7 +51,7 @@ class AuthService:
         if not verify_otp(request.otp, stored["otp"]):
             raise HTTPException(status_code=400, detail="Invalid OTP")
 
-        user_data = UserCreate(**stored["data"])
+        user_data = UserCreatenew(**stored["data"])
         user = await create_user(self.db, user_data)
 
         jti = str(uuid4())

@@ -1,6 +1,6 @@
 # schemas/roles.py
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 class PermissionBase(BaseModel):
     permission_id: int
@@ -29,3 +29,12 @@ class RoleResponse(RoleBase):
 
     class Config:
         from_attributes = True
+
+
+class RoleListFilters(BaseModel):
+    role_name: Optional[str] = None
+    permission_resource: Optional[str] = None
+    skip: int = 0
+    limit: int = 10
+    sort_by: Optional[Literal["role_name"]] = None
+    sort_order: Optional[Literal["asc", "desc"]] = "asc"

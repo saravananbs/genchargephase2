@@ -3,15 +3,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from ....core.database import get_db
-from ....schemas.role import RoleCreate, RoleUpdate, RoleResponse, PermissionBase
+from ....schemas.role import RoleCreate, RoleUpdate, RoleResponse, PermissionBase, RoleListFilters
 from ....crud import role as crud_roles
 
 router = APIRouter()
 
 # ---------- List all roles ----------
 @router.get("/", response_model=List[RoleResponse])
-async def list_roles(db: AsyncSession = Depends(get_db)):
-    roles = await crud_roles.get_all_roles(db)
+async def list_roles(
+    filters: RoleListFilters = Depends(),
+    db: AsyncSession = Depends(get_db)
+):
+    roles = await crud_roles.get_all_roles(db, filters)
     return [
         {
             "role_id": role.role_id,
@@ -30,6 +33,7 @@ async def list_roles(db: AsyncSession = Depends(get_db)):
         }
         for role in roles
     ]
+
 
 # ---------- Get a single role ----------
 @router.get("/{role_id}", response_model=RoleResponse)

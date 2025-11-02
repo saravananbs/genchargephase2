@@ -7,7 +7,7 @@ class Session(Base):
     __tablename__ = "Sessions"
 
     session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(Integer, ForeignKey("Users.user_id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer)
     refresh_token = Column(Text, unique=True, nullable=False)
     jti = Column(UUID(as_uuid=True), unique=True, nullable=False)
     refresh_token_expires_at = Column(TIMESTAMP, nullable=False)
