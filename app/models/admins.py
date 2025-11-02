@@ -3,13 +3,6 @@ from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, ForeignKey
 from sqlalchemy.orm import relationship
 from ..core.database import Base
 from sqlalchemy.sql import func
-import enum
-
-class AdminStatus(enum.Enum):
-    active = "active"
-    blocked = "blocked"
-    deleted = "deleted"
-
 
 class Admin(Base):
     __tablename__ = "Admins"
@@ -18,7 +11,6 @@ class Admin(Base):
     name = Column(String)
     email = Column(String, unique=True)
     phone_number = Column(String, unique=True)
-    status = Column(Enum(AdminStatus))
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
     role_id = Column(Integer, ForeignKey("Roles.role_id"))

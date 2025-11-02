@@ -28,19 +28,6 @@ class UserStatus(str, Enum):
     active = "active"
     blocked = "blocked"
 
-
-# ---------- Shared ----------
-# class UserBase(BaseModel):
-#     name: Optional[str]
-#     email: Optional[EmailStr]
-#     phone_number: Optional[str]
-#     user_type: Optional[UserType]
-#     status: Optional[UserStatus]
-#     wallet_balance: Optional[float]
-
-    
-
-
 # ---------- Admin ----------
 class UserListFilters(BaseModel):
     name: Optional[str] = None
@@ -107,4 +94,4 @@ class UserPreferenceResponse(UserPreferenceBase):
     user_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

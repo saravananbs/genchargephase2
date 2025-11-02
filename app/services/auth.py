@@ -84,7 +84,7 @@ class AuthService:
         if user and str(user.status) == "UserStatus.active":
             identity_type = "user"
             identity_id = user.user_id
-        elif admin and str(admin.status) == "AdminStatus.active":
+        elif admin:
             role = await get_admin_role_by_phone(self.db, request.phone_number)
             identity_type = role.role_name
             identity_id = admin.admin_id

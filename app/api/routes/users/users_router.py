@@ -50,7 +50,6 @@ async def block_user(
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Users:edit"], use_cache=False)
 ):
-    print(current_user.status)
     user = await crud_user.block_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -66,7 +65,6 @@ async def unblock_user(
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Users:edit"], use_cache=False)
 ):
-    print(current_user.status)
     user = await crud_user.unblock_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -133,7 +131,6 @@ async def deactivate_account(
     db: Session = Depends(get_db),
     authorized = Security(require_scopes, scopes=["User"], use_cache=False)
 ):
-    print(current_user.status)
     updated = await crud_user.deactivate_user(db, current_user.user_id)
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
@@ -147,7 +144,6 @@ async def reactivate_account(
     db: Session = Depends(get_db),
     authorized = Security(require_scopes, scopes=["User"], use_cache=False)
 ):
-    print(current_user.status)
     updated = await crud_user.reactivate_user(db, current_user.user_id)
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")

@@ -47,6 +47,7 @@ async def update_user_status(db: AsyncSession, user_id: int, status: str):
     user = result.scalar_one_or_none()
     if user:
         user.status = status
+        user.updated_at = datetime.now()
         await db.commit()
         await db.refresh(user)
     return user
@@ -136,6 +137,7 @@ async def block_user(db: AsyncSession, user_id: int) -> Optional[User]:
             detail="User is not active, Cannot block a non-active user"
         )
     user.status = UserStatus.blocked
+    user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(user)
     return user
@@ -156,6 +158,7 @@ async def unblock_user(db: AsyncSession, user_id: int) -> Optional[User]:
         )
 
     user.status = UserStatus.active
+    user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(user)
     return user
@@ -181,6 +184,7 @@ async def switch_user_type(
         return None
 
     user.user_type = user_type
+    user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(user)
     return user
@@ -200,6 +204,7 @@ async def deactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
             detail="User is not active, Cannot deactivate a non-active user"
         )
     user.status = UserStatus.deactive
+    user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(user)
     return user
@@ -220,6 +225,7 @@ async def reactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
         )
 
     user.status = UserStatus.active
+    user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(user)
     return user
@@ -252,6 +258,7 @@ async def register_user(db: AsyncSession, current_user: User, name: str, email: 
         .values(name=name, email=email, referee_code=referral_code)
         .execution_options(synchronize_session="fetch")
     )
+    user.updated_at = datetime.now()
     await db.execute(stmt)
     await db.commit()
 

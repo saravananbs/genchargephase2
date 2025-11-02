@@ -8,6 +8,7 @@ from ..schemas.admin import AdminCreate, AdminUpdate, AdminListFilters
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from typing import Sequence
+from datetime import datetime
 
 async def get_admin_by_phone(db: AsyncSession, phone: str):
     result = await db.execute(select(Admin).where(Admin.phone_number == phone))
@@ -32,8 +33,6 @@ async def get_admins(db: AsyncSession, filters: AdminListFilters) -> Sequence[Ad
         stmt = stmt.where(Admin.email.ilike(f"%{filters.email}%"))
     if filters.phone_number:
         stmt = stmt.where(Admin.phone_number.ilike(f"%{filters.phone_number}%"))
-    if filters.status:
-        stmt = stmt.where(Admin.status == filters.status)
     if filters.role_name:
         stmt = stmt.where(Role.role_name.ilike(f"%{filters.role_name}%"))
     if filters.sort_by:
@@ -53,16 +52,13 @@ async def get_admin_by_id(db: AsyncSession, admin_id: int):
 async def create_admin(db: AsyncSession, admin_data: AdminCreate):
     try:
         result = await db.execute(
-            select(Admin).where(
-                (Admin.email == admin_data.email)
-                | (Admin.phone_number == admin_data.phone_number)
-            )
+            select(Admin).where((Admin.phone_number == admin_data.phone_number))
         )
         existing_admin = result.scalars().first()
         if existing_admin:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Admin with this email or phone number already exists",
+                detail="Admin with this phone number already exists",
             )
 
         data = admin_data.model_dump()
@@ -85,6 +81,7 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
             del data["role_name"]
 
         new_admin = Admin(**data)
+        new_admin.created_at = datetime.now()
         db.add(new_admin)
         await db.commit()
         await db.refresh(new_admin)
@@ -93,9 +90,7 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
 
     except IntegrityError as e:
         await db.rollback()
-        if "Admins_email_key" in str(e.orig):
-            detail = "Email already exists"
-        elif "Admins_phone_number_key" in str(e.orig):
+        if "Admins_phone_number_key" in str(e.orig):
             detail = "Phone number already exists"
         else:
             detail = "Duplicate or integrity error occurred"
@@ -162,6 +157,7 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
 
         for key, value in data.items():
             setattr(admin, key, value)
+        admin.updated_at = datetime.now()
 
         await db.commit()
         await db.refresh(admin)
@@ -222,7 +218,7 @@ async def update_admin(db: AsyncSession, admin_id: int, admin_data):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Admin not found",
             )
-
+        updated_admin.updated_at = datetime.now()
         await db.commit()
         return updated_admin
 
