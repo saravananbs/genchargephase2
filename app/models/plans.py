@@ -28,12 +28,9 @@ class Plan(Base):
     description = Column(Text)
     criteria = Column(JSON)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    
-    # ⛔ Removed FK for Admins, keep ID for historical reference
     created_by = Column(Integer, nullable=True)
     
     status = Column(Enum(PlanStatus), nullable=False, default=PlanStatus.active)
 
     group = relationship("PlanGroup", back_populates="plans")
     active_plans = relationship("CurrentActivePlan", back_populates="plan", passive_deletes=True)
-    # transactions = relationship("Transaction", back_populates="plan")

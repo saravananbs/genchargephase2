@@ -41,8 +41,6 @@ class Transaction(Base):
     __tablename__ = "Transactions"
 
     txn_id = Column(Integer, primary_key=True)
-    
-    # ⛔ Removed FK for Users — keep reference only
     user_id = Column(Integer, nullable=True)
     
     category = Column(Enum(TransactionCategory), nullable=False)
@@ -50,7 +48,6 @@ class Transaction(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     service_type = Column(Enum(ServiceType))
     
-    # ⛔ Removed FKs for Plan and Offer — keep IDs only
     plan_id = Column(Integer, nullable=True)
     offer_id = Column(Integer, nullable=True)
     
@@ -61,6 +58,3 @@ class Transaction(Base):
     payment_method = Column(Enum(PaymentMethod))
     payment_transaction_id = Column(String)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-    # plan = relationship("Plan", back_populates="transactions")
-    # offer = relationship("Offer", back_populates="transactions")

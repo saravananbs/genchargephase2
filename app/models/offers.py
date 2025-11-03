@@ -23,11 +23,9 @@ class Offer(Base):
     description = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     
-    # ⛔ Removed FK for Admins, keep ID for historical reference
     created_by = Column(Integer, nullable=True)
     
     status = Column(Enum(OfferStatus), nullable=False, default=OfferStatus.active)
 
     offer_type = relationship("OfferType", back_populates="offers")
-    # transactions = relationship("Transaction", back_populates="offer")
 
