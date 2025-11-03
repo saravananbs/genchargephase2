@@ -61,7 +61,7 @@ class UserDeactivate(BaseModel):
 class UserRegisterRequest(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
     email: EmailStr
-    referral_code: Optional[str] = None
+    referee_code: Optional[str] = None
 
 class UserRegisterResponse(BaseModel):
     user_id: int

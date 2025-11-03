@@ -27,7 +27,7 @@ async def register_user_route(
     current_user: User = Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["User"], use_cache=False)
 ):
-    user = await crud_user.register_user(db, current_user, data.name, data.email, data.referral_code)
+    user = await crud_user.register_user(db, current_user, data.name, data.email, data.referee_code)
     return user
 
 @router.post("/login")

@@ -245,7 +245,7 @@ async def delete_user_account(db: AsyncSession, user_id: int) -> Optional[UserAr
     return await delete_user(db, user_id)
 
 
-async def register_user(db: AsyncSession, current_user: User, name: str, email: str, referral_code: str = None):
+async def register_user(db: AsyncSession, current_user: User, name: str, email: str, referee_code: str = None):
     stmt = (
         select(User)
         .where(
@@ -267,7 +267,7 @@ async def register_user(db: AsyncSession, current_user: User, name: str, email: 
     stmt = (
         update(User)
         .where(User.user_id == current_user.user_id)
-        .values(name=name, email=email, referee_code=referral_code, updated_at=datetime.now())
+        .values(name=name, email=email, referee_code=referee_code, updated_at=datetime.now())
         .execution_options(synchronize_session="fetch")
     )
     await db.execute(stmt)
