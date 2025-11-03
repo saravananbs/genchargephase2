@@ -8,14 +8,29 @@ from ..schemas.users import UserCreatenew, UserListFilters, UserPreferenceUpdate
 from datetime import datetime
 from typing import Optional, Sequence
 from fastapi import HTTPException, status
+import string
+import random
+
+
+async def generate_unique_referral_code(db: AsyncSession, length: int = 8) -> str:
+    """Generate a unique alphanumeric referral code."""
+    characters = string.ascii_uppercase + string.digits
+
+    while True:
+        code = ''.join(random.choices(characters, k=length))
+        result = await db.execute(select(User).where(User.referral_code == code))
+        existing_user = result.scalars().first()
+        if not existing_user:
+            return code
 
 
 async def create_user(db: AsyncSession, user: UserCreatenew):
+    referal_code = await generate_unique_referral_code(db)
     db_user = User(
         name=user.name,
         email=user.email,
         phone_number=user.phone_number,
-        referral_code=user.referral_code,
+        referral_code=referal_code,
         referee_code =user.referee_code,
         user_type=user.user_type,
         status=user.status,
@@ -253,7 +268,7 @@ async def register_user(db: AsyncSession, current_user: User, name: str, email: 
             or_(
                 User.name.isnot(None),
                 User.email.isnot(None),
-                User.referral_code.isnot(None)
+                User.referee_code.isnot(None)
             )
         )
     )

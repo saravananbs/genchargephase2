@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     user_type: str
     status: str = "active"
     wallet_balance: float = 0.0
+    referee_code: Optional[str] = None
     class Config:
         from_attributes = True
 
