@@ -16,9 +16,7 @@ async def create_offer(db: AsyncSession, payload: OfferCreate, created_by: int):
     db.add(offer)
     try:
         await db.commit()
-        # Refresh with eager load
         await db.refresh(offer, attribute_names=["offer_type"])
-        # Or better: re-query with selectinload
         result = await db.execute(
             select(Offer).options(selectinload(Offer.offer_type)).where(Offer.offer_id == offer.offer_id)
         )
@@ -64,12 +62,9 @@ async def list_offers(db: AsyncSession, filters: OfferFilter) -> List[Offer]:
         q = q.where(Offer.is_special == filters.is_special)
     if filters.status is not None:
         q = q.where(Offer.status == filters.status)
-
-    # validate order_by allowed fields
     allowed = {"offer_id", "offer_name", "offer_validity", "created_at"}
     if filters.order_by not in allowed:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid order_by field")
-
     col = getattr(Offer, filters.order_by)
     q = q.order_by(desc(col) if filters.order_dir == "desc" else asc(col))
 
@@ -134,6 +129,5 @@ async def delete_offer(db: AsyncSession, offer_id: int):
         return
     except IntegrityError as e:
         await db.rollback()
-        # likely referenced by transactions — block delete
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Cannot delete offer — it is referenced by other records.")

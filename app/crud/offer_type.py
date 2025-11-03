@@ -28,19 +28,13 @@ async def get_offer_type(db: AsyncSession, offer_type_id: int):
 # READ LIST (with pagination, filtering, ordering)
 async def get_offer_types(db: AsyncSession, filters: OfferTypeFilter):
     query = select(OfferType)
-
-    # Filter by search
     if filters.search:
         query = query.where(OfferType.offer_type_name.ilike(f"%{filters.search}%"))
-
-    # Order
     order_column = getattr(OfferType, filters.order_by, OfferType.offer_type_id)
     if filters.order_dir.lower() == "desc":
         query = query.order_by(desc(order_column))
     else:
         query = query.order_by(asc(order_column))
-
-    # Pagination
     query = query.offset(filters.offset).limit(filters.limit)
     result = await db.execute(query)
     return result.scalars().all()
@@ -50,7 +44,6 @@ async def update_offer_type(db: AsyncSession, offer_type_id: int, data: OfferTyp
     offer_type = await get_offer_type(db, offer_type_id)
     if not offer_type:
         raise HTTPException(status_code=404, detail="Offer type not found")
-
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(offer_type, field, value)
     try:

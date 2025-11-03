@@ -37,6 +37,7 @@ async def get_user_by_phone(db: AsyncSession, phone: str):
     result = await db.execute(select(User).where(User.phone_number == phone))
     return result.scalar_one_or_none()
 
+
 async def get_user_by_id(db: AsyncSession, user_id: int):
     result = await db.execute(select(User).where(User.user_id == user_id))
     return result.scalar_one_or_none()
@@ -51,6 +52,7 @@ async def update_user_status(db: AsyncSession, user_id: int, status: str):
         await db.commit()
         await db.refresh(user)
     return user
+
 
 async def get_users(db: AsyncSession, filters: UserListFilters) -> Sequence[User]:
     stmt = select(User)
@@ -70,6 +72,7 @@ async def get_users(db: AsyncSession, filters: UserListFilters) -> Sequence[User
     stmt = stmt.offset(filters.skip).limit(filters.limit)
     result = await db.execute(stmt)
     return result.scalars().all()
+
 
 async def delete_user(db: AsyncSession, user_id: int) -> Optional[UserArchieve]:
     user_result = await db.execute(select(User).where(User.user_id == user_id))
@@ -100,6 +103,7 @@ async def delete_user(db: AsyncSession, user_id: int) -> Optional[UserArchieve]:
     await db.commit()
     return archived
 
+
 async def get_archived_users(
     db: AsyncSession, filters: UserListFilters
 ) -> Sequence[UserArchieve]:
@@ -122,6 +126,7 @@ async def get_archived_users(
     result = await db.execute(stmt)
     return result.scalars().all()
 
+
 async def block_user(db: AsyncSession, user_id: int) -> Optional[User]:
     user = await get_user_by_id(db, user_id)
     if not user:
@@ -141,6 +146,7 @@ async def block_user(db: AsyncSession, user_id: int) -> Optional[User]:
     await db.commit()
     await db.refresh(user)
     return user
+
 
 async def unblock_user(db: AsyncSession, user_id: int) -> Optional[User]:
     user = await get_user_by_id(db, user_id)
@@ -163,6 +169,7 @@ async def unblock_user(db: AsyncSession, user_id: int) -> Optional[User]:
     await db.refresh(user)
     return user
 
+
 async def update_email(
     db: AsyncSession, user_id: int, new_email: str
 ) -> Optional[User]:
@@ -176,6 +183,7 @@ async def update_email(
     await db.refresh(user)
     return user
 
+
 async def switch_user_type(
     db: AsyncSession, user_id: int, user_type: UserType
 ) -> Optional[User]:
@@ -188,6 +196,7 @@ async def switch_user_type(
     await db.commit()
     await db.refresh(user)
     return user
+
 
 async def deactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
     user = await get_user_by_id(db, user_id)
@@ -208,6 +217,7 @@ async def deactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
     await db.commit()
     await db.refresh(user)
     return user
+
 
 async def reactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
     user = await get_user_by_id(db, user_id)
@@ -230,8 +240,10 @@ async def reactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
     await db.refresh(user)
     return user
 
+
 async def delete_user_account(db: AsyncSession, user_id: int) -> Optional[UserArchieve]:
     return await delete_user(db, user_id)
+
 
 async def register_user(db: AsyncSession, current_user: User, name: str, email: str, referral_code: str = None):
     stmt = (
@@ -263,6 +275,7 @@ async def register_user(db: AsyncSession, current_user: User, name: str, email: 
 
     updated_user = await db.get(User, current_user.user_id)
     return updated_user
+
 
 async def get_user_preference(db: AsyncSession, user_id: int):
     result = await db.execute(select(UserPreference).where(UserPreference.user_id == user_id))

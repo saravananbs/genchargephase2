@@ -10,12 +10,10 @@ class SignupRequest(BaseModel):
 
 
 class OTPVerifyRequest(BaseModel):
-    # email: Optional[EmailStr] = None
     username: str
     password: str
 
 class LoginRequest(BaseModel):
-    # email: Optional[EmailStr] = None
     phone_number: str
 
 class LogoutRequest(BaseModel):

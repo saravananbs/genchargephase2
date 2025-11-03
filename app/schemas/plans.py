@@ -14,7 +14,6 @@ class PlanStatus(str, Enum):
     inactive = "inactive"
 
 
-# 🔹 Base schema (shared)
 class PlanBase(BaseModel):
     plan_name: str
     validity: Optional[int] = None
@@ -25,7 +24,6 @@ class PlanBase(BaseModel):
     criteria: Optional[Any] = None
 
 
-# 🔹 Create / Update requests
 class PlanCreate(PlanBase):
     pass
 
@@ -40,7 +38,6 @@ class PlanUpdate(BaseModel):
     status: Optional[PlanStatus] = None
 
 
-# 🔹 Admin responses
 class PlanResponse(PlanBase):
     plan_id: int
     status: PlanStatus
@@ -51,7 +48,6 @@ class PlanResponse(PlanBase):
         from_attributes = True
 
 
-# 🔹 User responses (no sensitive data)
 class UserPlanResponse(PlanBase):
     plan_id: int
 
@@ -59,7 +55,6 @@ class UserPlanResponse(PlanBase):
         from_attributes = True
 
 
-# 🔹 Filter schema for listing
 class PlanFilter(BaseModel):
     search: Optional[str] = Field(None, description="Search in plan name or description")
     type: Optional[PlanType] = Field(None, description="Filter by plan type")
