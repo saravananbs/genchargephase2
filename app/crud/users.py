@@ -255,10 +255,9 @@ async def register_user(db: AsyncSession, current_user: User, name: str, email: 
     stmt = (
         update(User)
         .where(User.user_id == current_user.user_id)
-        .values(name=name, email=email, referee_code=referral_code)
+        .values(name=name, email=email, referee_code=referral_code, updated_at=datetime.now())
         .execution_options(synchronize_session="fetch")
     )
-    user.updated_at = datetime.now()
     await db.execute(stmt)
     await db.commit()
 
@@ -271,7 +270,7 @@ async def get_user_preference(db: AsyncSession, user_id: int):
 
 
 async def create_user_preference(db: AsyncSession, user_id: int, data: UserPreferenceUpdate):
-    preference = UserPreference(user_id=user_id, **data.model_dump())
+    preference = UserPreference(user_id=user_id, **data)
     db.add(preference)
     await db.commit()
     await db.refresh(preference)

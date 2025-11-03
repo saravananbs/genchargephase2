@@ -9,6 +9,32 @@ from typing import List
 
 router = APIRouter()
 
+# ✅ GET /admin — Get current logged-in admin details
+@router.get("/me", response_model=AdminOut)
+async def get_self_admin(
+    db = Depends(get_db),
+    current_user = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Admin_me:read"], use_cache=False)
+):
+    admin = await admin_crud.get_admin_by_id(db, current_user.admin_id)
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return admin
+
+
+# ✅ PATCH /admin — Update self (without role or phone change)
+@router.patch("/me", response_model=AdminOut)
+async def update_self_admin(
+    data: AdminSelfUpdate,
+    db = Depends(get_db),
+    current_user = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Admin_me:edit"], use_cache=False)
+):
+
+    updated_admin = await admin_crud.update_admin(db, current_user.admin_id, data)
+    return updated_admin
+
+
 # ✅ GET /admins — List all admins
 @router.get("/", response_model=List[AdminOut])
 async def list_admins(
@@ -60,27 +86,3 @@ async def update_admin_by_phone(
     return updated_admin
 
 
-# ✅ GET /admin — Get current logged-in admin details
-@router.get("/me", response_model=AdminOut)
-async def get_self_admin(
-    db = Depends(get_db),
-    current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admin_me:read"], use_cache=False)
-):
-    admin = await admin_crud.get_admin_by_id(db, current_user.admin_id)
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin not found")
-    return admin
-
-
-# ✅ PATCH /admin — Update self (without role or phone change)
-@router.patch("/me", response_model=AdminOut)
-async def update_self_admin(
-    data: AdminSelfUpdate,
-    db = Depends(get_db),
-    current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admin_me:edit"], use_cache=False)
-):
-
-    updated_admin = await admin_crud.update_admin(db, current_user.admin_id, data)
-    return updated_admin
