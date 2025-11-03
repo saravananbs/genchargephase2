@@ -6,7 +6,8 @@ from .api.routes.admin.admin_router import router as admin_router
 from .api.routes.roles.role_router import router as role_router
 from .api.routes.users.users_router import router as user_router
 from .api.routes.plans.plans_router import router as plans_router
-from .api.routes.offers.offers_crud import router as offer_router
+from .api.routes.offers.offers_router import router as offer_router
+from .api.routes.recharge.recharge_router import router as recharge_router
 from .core.database import engine
 from .core.database import Base
 from app.core.database import engine, Base
@@ -35,6 +36,7 @@ app.include_router(role_router, prefix="/role", tags=["role-permission"])
 app.include_router(user_router, prefix="/user", tags=["user"])
 app.include_router(plans_router, prefix="/plans", tags=["plans"])
 app.include_router(offer_router, prefix="/offers", tags=["offers"])
+app.include_router(recharge_router, prefix="/recharge", tags=["recharges"])
 
 
 
