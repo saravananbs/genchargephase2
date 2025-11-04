@@ -22,6 +22,7 @@ class PlanBase(BaseModel):
     group_id: Optional[int] = None
     description: Optional[str] = None
     criteria: Optional[Any] = None
+    price: int
 
 
 class PlanCreate(PlanBase):

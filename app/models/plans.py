@@ -29,7 +29,7 @@ class Plan(Base):
     criteria = Column(JSON)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     created_by = Column(Integer, nullable=True)
-    
+    price = Column(Integer, nullable=False)
     status = Column(Enum(PlanStatus), nullable=False, default=PlanStatus.active)
 
     group = relationship("PlanGroup", back_populates="plans")
