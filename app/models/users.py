@@ -27,4 +27,6 @@ class User(Base):
     wallet_balance = Column(Numeric(10, 2), default=0)
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
+
+setattr(User, "autopays", relationship("AutoPay", back_populates="user", passive_deletes=True))
     

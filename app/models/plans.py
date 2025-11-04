@@ -34,3 +34,5 @@ class Plan(Base):
 
     group = relationship("PlanGroup", back_populates="plans")
     active_plans = relationship("CurrentActivePlan", back_populates="plan", passive_deletes=True)
+
+setattr(Plan, "autopays", relationship("AutoPay", back_populates="plan", passive_deletes=True))
