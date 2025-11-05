@@ -10,5 +10,7 @@ class Settings(BaseSettings):
     OTP_EXPIRE_MINUTES: int = 5
     OTP_SECRET: str = os.getenv("OTP_SECRET", "pooriya_pongala")
     ALGORITHM: str = "HS256"
+    MONGO_URL: str = os.getenv("MONGO_URL", "mongodb://localhost:27017")
+    MONGO_DB_NAME: str  = os.getenv("MONGO_DB_NAME", "gencharge")
 
 settings = Settings()
