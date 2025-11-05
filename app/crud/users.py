@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, or_, asc, desc
 from ..models.users import User, UserStatus, UserType
 from ..models.users_archieve import UserArchieve
+from ..models.referral import ReferralReward, ReferralRewardStatus
 from ..models.user_preference import UserPreference
 from ..schemas.users import UserCreatenew, UserListFilters, UserPreferenceUpdate
 from datetime import datetime
@@ -260,36 +261,74 @@ async def delete_user_account(db: AsyncSession, user_id: int) -> Optional[UserAr
     return await delete_user(db, user_id)
 
 
-async def register_user(db: AsyncSession, current_user: User, name: str, email: str, referee_code: str = None):
-    stmt = (
-        select(User)
-        .where(
-            User.user_id == current_user.user_id,
-            or_(
-                User.name.isnot(None),
-                User.email.isnot(None),
-                User.referee_code.isnot(None)
-            )
-        )
+async def register_user(
+    db: AsyncSession,
+    current_user: User,
+    name: str,
+    email: str,
+    referee_code: Optional[str] = None,
+) -> User:
+    # --- Step 1: Check if user is already registered ---
+    stmt = select(User).where(
+        User.user_id == current_user.user_id,
+        or_(
+            User.name.is_not(None),
+            User.email.is_not(None),
+            User.referee_code.is_not(None),
+        ),
     )
-    result = await db.execute(stmt)    
-    user = result.scalars().first()
-    if user:
+    result = await db.execute(stmt)
+    if result.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already registered"
+            detail="User already registered",
         )
-    stmt = (
+
+    # --- Step 2: Validate referee_code (if provided) ---
+    referrer = None
+    if referee_code:
+        stmt = select(User).where(User.referral_code == referee_code)
+        result = await db.execute(stmt)
+        referrer = result.scalars().first()
+        if not referrer:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid referee code",
+            )
+        if referrer.user_id == current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot refer yourself",
+            )
+
+    # --- Step 3: Update user ---
+    update_stmt = (
         update(User)
         .where(User.user_id == current_user.user_id)
-        .values(name=name, email=email, referee_code=referee_code, updated_at=datetime.now())
+        .values(
+            name=name,
+            email=email,
+            referee_code=referee_code,
+            updated_at=datetime.now(),
+        )
         .execution_options(synchronize_session="fetch")
     )
-    await db.execute(stmt)
-    await db.commit()
+    await db.execute(update_stmt)
 
-    updated_user = await db.get(User, current_user.user_id)
-    return updated_user
+    # --- Step 4: Create ReferralReward if referee exists ---
+    if referrer:
+        reward = ReferralReward(
+            referrer_id=referrer.user_id,
+            referred_id=current_user.user_id,
+            reward_amount=50.00,  # configure via settings or plan
+            status=ReferralRewardStatus.pending.value,
+            created_at=datetime.now(),
+        )
+        db.add(reward)
+
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
 
 async def get_user_preference(db: AsyncSession, user_id: int):

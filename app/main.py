@@ -9,6 +9,7 @@ from .api.routes.plans.plans_router import router as plans_router
 from .api.routes.offers.offers_router import router as offer_router
 from .api.routes.recharge.recharge_router import router as recharge_router
 from .api.routes.autopay.autopay_router import router as autopay_router
+from .api.routes.referrals.referrals_router import router as referrals_router
 from .core.database import engine
 from .core.database import Base
 from app.core.database import engine, Base
@@ -39,6 +40,7 @@ app.include_router(plans_router, prefix="/plans", tags=["plans"])
 app.include_router(offer_router, prefix="/offers", tags=["offers"])
 app.include_router(recharge_router, prefix="/recharge", tags=["recharges"])
 app.include_router(autopay_router, prefix="/autopay", tags=["autopay"])
+app.include_router(referrals_router, prefix="/referrals", tags=["referrals"])
 
 
 

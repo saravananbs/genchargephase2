@@ -39,7 +39,7 @@ from ..models.transactions import (
     PaymentMethod,
 )
 from ..models.current_active_plans import CurrentPlanStatus
-
+from ..crud.referrals import claim_referral_if_eligible
 
 # ---------- Criteria / Reward helpers ----------
 def evaluate_criteria(criteria: Optional[dict], context: dict) -> bool:
@@ -96,7 +96,7 @@ def _decide_plan_status(has_active: bool, force_queue: bool, force_activate: boo
 async def subscribe_plan(
     db: AsyncSession,
     request: RechargeRequest,
-    current_user,
+    current_user: User,
 ) -> TransactionOut:
     # Resolve target user
     target_user = await get_user_by_phone(db, request.phone_number)
@@ -139,23 +139,21 @@ async def subscribe_plan(
     await activate_queued_plan(db, target_user.user_id, request.phone_number)
 
     # Decide activation mode
-    has_active = bool(
-        await db.execute(
+    res = await db.execute(
             select(CurrentActivePlan).where(
                 CurrentActivePlan.user_id == target_user.user_id,
                 CurrentActivePlan.phone_number == request.phone_number,
                 CurrentActivePlan.status == CurrentPlanStatus.active,
             )
         )
-        .scalars()
-        .first()
-    )
+    res = res.scalars().first()
+    has_active = bool(res)
     force_queue = request.activation_mode == "queue"
     force_activate = request.activation_mode == "activate"
     plan_status = _decide_plan_status(has_active, force_queue, force_activate)
 
     # Create active plan entry
-    valid_from = datetime.utcnow()
+    valid_from = datetime.now()
     valid_to = valid_from + timedelta(days=plan.validity or 30)
     await create_active_plan(
         db,
@@ -182,8 +180,8 @@ async def subscribe_plan(
         source=request.source,
         status=TransactionStatus.success,
         payment_method=request.payment_method,
-        payment_transaction_id=f"PYMT_{datetime.utcnow().timestamp()}",
-        created_at=datetime.utcnow(),
+        payment_transaction_id=f"PYMT_{datetime.now().timestamp()}",
+        created_at=datetime.now(),
     )
 
     # Cashback transaction
@@ -196,10 +194,15 @@ async def subscribe_plan(
             amount=cashback,
             source=TransactionSource.offer_cashback,
             status=TransactionStatus.success,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(),
         )
         target_user.wallet_balance += cashback
 
+    
+    stmt = select(User).where(User.referral_code == current_user.referee_code)
+    result = await db.execute(stmt)
+    referrer = result.scalars().first()
+    existing = await claim_referral_if_eligible(db=db, referrer=referrer, referred=current_user)   
     await db.commit()
     await db.refresh(txn)
     return TransactionOut.model_validate(txn)

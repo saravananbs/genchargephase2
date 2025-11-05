@@ -29,4 +29,25 @@ class User(Base):
     updated_at = Column(TIMESTAMP)
 
 setattr(User, "autopays", relationship("AutoPay", back_populates="user", passive_deletes=True))
+setattr(
+    User,
+    "referrals_given",
+    relationship(
+        "ReferralReward",
+        foreign_keys="ReferralReward.referrer_id",
+        back_populates="referrer",
+        passive_deletes=True,
+    ),
+)
+
+setattr(
+    User,
+    "referrals_received",
+    relationship(
+        "ReferralReward",
+        foreign_keys="ReferralReward.referred_id",
+        back_populates="referred",
+        passive_deletes=True,
+    ),
+)
     
