@@ -11,6 +11,7 @@ from .api.routes.recharge.recharge_router import router as recharge_router
 from .api.routes.autopay.autopay_router import router as autopay_router
 from .api.routes.referrals.referrals_router import router as referrals_router
 from .api.routes.contact_form.contact_form_router import router as contact_form_router
+from .api.routes.content.content_router import router as content_router
 from .core.database import engine
 from .core.database import Base
 from app.core.database import engine, Base
@@ -43,6 +44,7 @@ app.include_router(recharge_router, prefix="/recharge", tags=["recharges"])
 app.include_router(autopay_router, prefix="/autopay", tags=["autopay"])
 app.include_router(referrals_router, prefix="/referrals", tags=["referrals"])
 app.include_router(contact_form_router, prefix="/contact-from", tags=["contact-form"])
+app.include_router(content_router, prefix="/content", tags=["content"])
 
 
 
