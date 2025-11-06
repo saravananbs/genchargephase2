@@ -4,6 +4,7 @@ from datetime import datetime
 from typing_extensions import Annotated
 from bson import ObjectId
 from pydantic_core import core_schema
+from enum import Enum
 
 class PyObjectId(ObjectId):
     @classmethod
@@ -71,3 +72,18 @@ class PaginatedResponseUser(BaseModel):
     page: int
     size: int
     pages: int
+
+class ContentType(str, Enum):
+    Landing_page_img1 = "Landing_page_img1"
+    Landing_page_img2 = "Landing_page_img2"
+    why_choose_us = "Why_Choose_us"
+    FAQ = "FAQ"
+    support_contact = "support_contact"
+
+class CreateContentSchema(BaseModel):
+    content_type: ContentType
+    title: str
+    body: Optional[str] = None
+
+class UpdateContentSchema(CreateContentSchema):
+    pass

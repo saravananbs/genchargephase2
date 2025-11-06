@@ -7,7 +7,7 @@ from ....core.document_db import get_mongo_db as get_db
 from ....models.admins import Admin
 from ....schemas.content import (
     ContentResponseAdmin, PaginatedResponseAdmin,
-    ContentResponseUser, PaginatedResponseUser
+    ContentResponseUser, PaginatedResponseUser, ContentType
 )
 from ....crud.content import ContentCRUD
 from ....services.content import ContentService
@@ -35,7 +35,7 @@ def get_service(crud: ContentCRUD = Depends(get_crud)):
     summary="Admin: Create content"
 )
 async def create_content(
-    content_type: str = Form(...),
+    content_type: ContentType = Form(...),
     title: str = Form(...),
     body: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
@@ -55,7 +55,7 @@ async def create_content(
 )
 async def update_content(
     content_id: str,
-    content_type: Optional[str] = Form(None),
+    content_type: Optional[ContentType] = Form(None),
     title: Optional[str] = Form(None),
     body: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),

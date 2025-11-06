@@ -122,7 +122,7 @@ async def admin_list_all(
     authorized = Security(require_scopes, scopes=["Autopay:read"], use_cache=False)
 ):
     return await list_all_autopays(
-        db, page=page, size=size, status=status, tag=tag, sort=sort
+        db, page=page, size=size, status=status, tag=tag, sort=sort, phone_number=phone_number
     )
 
 

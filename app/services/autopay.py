@@ -116,7 +116,7 @@ async def list_all_autopays(
     sort: str = "created_at_desc",
 ) -> PaginatedAutoPay:
     rows, total = await get_multi_all(
-        db, page=page, size=size, status=status, tag=tag, sort=sort
+        db, page=page, size=size, status=status, tag=tag, sort=sort, phone_number=phone_number
     )
     return PaginatedAutoPay(
         items=[AutoPayOut.model_validate(r) for r in rows],

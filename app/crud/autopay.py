@@ -107,7 +107,7 @@ async def get_multi_all(
     if tag:
         stmt = stmt.where(AutoPay.tag == tag)
     if phone_number:
-        stmt = stmt.where(AutoPay.phone_number.like(f"{phone_number}"))
+        stmt = stmt.where(AutoPay.phone_number.like(f"%{phone_number}%"))
 
     order_map = {
         "created_at_desc": AutoPay.created_at.desc(),
