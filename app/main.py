@@ -99,19 +99,18 @@ modal.querySelectorAll('*').forEach(el => {
                         dropdown.style.marginRight = '10px';
                         dropdown.innerHTML = `
                             <option value="">-- Show All --</option>
-                            <option value="Root">Root</option>
+                            <option value="Admin">Admin</option>
                             <option value="Auth">Auth</option>
-                            <option value="Profile">Profile</option>
-                            <option value="Roles">Roles</option>
-                            <option value="Movies">Movies</option>
-                            <option value="Addons">Addons</option>
-                            <option value="Shows">Shows</option>
+                            <option value="Autopay">Autopay</option>
+                            <option value="Contact-Form">Contact-Form</option>
+                            <option value="Content">Content</option>
                             <option value="Offers">Offers</option>
-                            <option value="Bookings">Bookings</option>
-                            <option value="Payments">Payments</option>
-                            <option value="Issues">Issues</option>
-                            <option value="Content Management">Content Management</option>
-                            <option value="Protected">Protected</option>
+                            <option value="Plans">Plans</option>
+                            <option value="Recharge">Recharge</option>
+                            <option value="Referrals">Referrals</option>
+                            <option value="Roles">Roles</option>
+                            <option value="Testing">Testing</option>
+                            <option value="Users">Users</option>
                         `;
 
                         
@@ -149,23 +148,23 @@ modal.querySelectorAll('*').forEach(el => {
     return HTMLResponse(content=html)
 
 # Include routers
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(admin_router, prefix="/admin", tags=["admin"])
-app.include_router(role_router, prefix="/role", tags=["role-permission"])
-app.include_router(user_router, prefix="/user", tags=["user"])
-app.include_router(plans_router, prefix="/plans", tags=["plans"])
-app.include_router(offer_router, prefix="/offers", tags=["offers"])
-app.include_router(recharge_router, prefix="/recharge", tags=["recharges"])
-app.include_router(autopay_router, prefix="/autopay", tags=["autopay"])
-app.include_router(referrals_router, prefix="/referrals", tags=["referrals"])
-app.include_router(contact_form_router, prefix="/contact-from", tags=["contact-form"])
-app.include_router(content_router, prefix="/content", tags=["content"])
+app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
+app.include_router(role_router, prefix="/role", tags=["Roles"])
+app.include_router(user_router, prefix="/user", tags=["Users"])
+app.include_router(plans_router, prefix="/plans", tags=["Plans"])
+app.include_router(offer_router, prefix="/offers", tags=["Offers"])
+app.include_router(recharge_router, prefix="/recharge", tags=["Recharge"])
+app.include_router(autopay_router, prefix="/autopay", tags=["Autopay"])
+app.include_router(referrals_router, prefix="/referrals", tags=["Referrals"])
+app.include_router(contact_form_router, prefix="/contact-from", tags=["Contact-Form"])
+app.include_router(content_router, prefix="/content", tags=["Content"])
 
 
 
 
 
-app.include_router(testing_router, prefix="/test", tags=["test"])
+app.include_router(testing_router, prefix="/test", tags=["Testing"])
 
 
 
