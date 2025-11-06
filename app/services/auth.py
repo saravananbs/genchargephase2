@@ -42,8 +42,8 @@ class AuthService:
 
     async def verify_otp_signup(self, req: OTPVerifyRequest, response: Response):
         class request:
-            phone_number = req.username
-            otp = req.password
+            phone_number = req.phone_number
+            otp = req.otp
         key = request.phone_number
         stored = self.__class__.otp_store.get(key)
         if not stored or datetime.datetime.now() > stored["expires_at"]:

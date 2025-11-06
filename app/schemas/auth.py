@@ -10,8 +10,8 @@ class SignupRequest(BaseModel):
 
 
 class OTPVerifyRequest(BaseModel):
-    username: str
-    password: str
+    phone_number: str
+    otp: str
 
 class LoginRequest(BaseModel):
     phone_number: str
