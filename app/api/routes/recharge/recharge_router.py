@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Security
 from typing import List, Optional, Literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ....core.document_db import get_mongo_db
 from ....models.users import User
 from ....core.database import get_db
 from ....dependencies.auth import get_current_user
@@ -37,11 +38,12 @@ router = APIRouter()
 async def subscribe(
     request: RechargeRequest,
     db=Depends(get_db),
+    mongo_db = Depends(get_mongo_db),
     current_user=Depends(get_current_user),
     _=Security(require_scopes, scopes=["User"]),
 ):
     try:
-        return await subscribe_plan(db, request, current_user)
+        return await subscribe_plan(db=db, mongo_db=mongo_db, request=request, current_user=current_user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -50,11 +52,12 @@ async def subscribe(
 async def topup(
     request: WalletTopupRequest,
     db=Depends(get_db),
+    mongo_db = Depends(get_mongo_db),
     current_user=Depends(get_current_user),
     _=Security(require_scopes, scopes=["User"]),
 ):
     try:
-        return await wallet_topup(db, request, current_user)
+        return await wallet_topup(db, mongo_db, request, current_user)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

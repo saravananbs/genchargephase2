@@ -10,12 +10,13 @@ from .api.routes.plans.plans_router import router as plans_router
 from .api.routes.offers.offers_router import router as offer_router
 from .api.routes.recharge.recharge_router import router as recharge_router
 from .api.routes.autopay.autopay_router import router as autopay_router
+from .api.routes.notification.notification_router import router as notification_router
 from .api.routes.referrals.referrals_router import router as referrals_router
 from .api.routes.contact_form.contact_form_router import router as contact_form_router
 from .api.routes.content.content_router import router as content_router
-from .core.database import engine
-from .core.database import Base
-from app.core.database import engine, Base
+from .core.database import engine, Base
+from .core.document_db import init_counters
+
 from contextlib import asynccontextmanager
 from app.models import *
 
@@ -25,6 +26,8 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("Database tables created successfully.")
+    await init_counters()
+    print("MongoDB notification_id counter initialized.")
 
     yield 
 
@@ -104,6 +107,7 @@ modal.querySelectorAll('*').forEach(el => {
                             <option value="Autopay">Autopay</option>
                             <option value="Contact-Form">Contact-Form</option>
                             <option value="Content">Content</option>
+                            <option value="Notification">Notification</option>
                             <option value="Offers">Offers</option>
                             <option value="Plans">Plans</option>
                             <option value="Recharge">Recharge</option>
@@ -157,6 +161,7 @@ app.include_router(offer_router, prefix="/offers", tags=["Offers"])
 app.include_router(recharge_router, prefix="/recharge", tags=["Recharge"])
 app.include_router(autopay_router, prefix="/autopay", tags=["Autopay"])
 app.include_router(referrals_router, prefix="/referrals", tags=["Referrals"])
+app.include_router(notification_router, prefix="/notification", tags=["Notification"])
 app.include_router(contact_form_router, prefix="/contact-from", tags=["Contact-Form"])
 app.include_router(content_router, prefix="/content", tags=["Content"])
 

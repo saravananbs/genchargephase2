@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Optional, Tuple
-
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -10,6 +10,7 @@ from ..schemas.users import UserResponse
 from ..models.users import User
 from ..models.current_active_plans import CurrentActivePlan
 from ..models.transactions import Transaction
+from ..services.notification import create_custom_notification
 
 from ..crud.recharge import (
     get_user_by_phone,
@@ -97,6 +98,7 @@ async def subscribe_plan(
     db: AsyncSession,
     request: RechargeRequest,
     current_user: User,
+    mongo_db: AsyncIOMotorDatabase
 ) -> TransactionOut:
     # Resolve target user
     target_user = await get_user_by_phone(db, request.phone_number)
@@ -205,13 +207,39 @@ async def subscribe_plan(
     existing = await claim_referral_if_eligible(db=db, referrer=referrer, referred=current_user)   
     await db.commit()
     await db.refresh(txn)
+
+    notify_user = await get_user_by_phone(db, request.phone_number)
+    #create a notification
+    await create_custom_notification(
+        db=mongo_db, 
+        description= f"Recharge for Rs.{plan_amount} is done for mobile number {request.phone_number} on {datetime.now()} plan details - plan name: {plan.plan_name}, plan type: {plan.plan_type}, validity: {plan.validity} price: {plan.price}", 
+        recipient_type="user", recipient_id=notify_user.user_id, notif_type="message"
+    )
+    await create_custom_notification(
+        db=mongo_db, 
+        description= f"Recharge for Rs.{plan_amount} is done for mobile number {request.phone_number} on {datetime.now()}. plan details - plan name: {plan.plan_name}, plan type: {plan.plan_type}, validity: {plan.validity} price: {plan.price}", 
+        recipient_type="user", recipient_id=notify_user.user_id, notif_type="in-app"
+    )
+
+    #bill remainder
+    await create_custom_notification(
+        db=mongo_db, description= f"Bill is on due for mobile number {request.phone_number}", recipient_type="user", 
+        recipient_id=notify_user.user_id, notif_type="message", scheduled_at=(datetime.now() + timedelta(days=(plan.validity-1)))
+    )
+    await create_custom_notification(
+        db=mongo_db, description= f"Bill is on due for mobile number {request.phone_number}", recipient_type="user", 
+        recipient_id=notify_user.user_id, notif_type="in-app", scheduled_at=(datetime.now() + timedelta(days=(plan.validity-1)))
+    )
+
+
     return TransactionOut.model_validate(txn)
 
 
 async def wallet_topup(
     db: AsyncSession,
+    mongo_db: AsyncIOMotorDatabase,
     request: WalletTopupRequest,
-    current_user,
+    current_user: User,
 ) -> TransactionOut:
     target_phone = request.phone_number or current_user.phone_number
     target_user = await get_user_by_phone(db, target_phone)
@@ -235,10 +263,21 @@ async def wallet_topup(
         source=TransactionSource.wallet_topup,
         status=TransactionStatus.success,
         payment_method=request.payment_method,
-        payment_transaction_id=f"TOPUP_{datetime.utcnow().timestamp()}",
-        created_at=datetime.utcnow(),
+        payment_transaction_id=f"TOPUP_{datetime.now().timestamp()}",
+        created_at=datetime.now(),
     )
-
+    notify_user = await get_user_by_phone(db, request.phone_number)
+    #create a notification
+    await create_custom_notification(
+        db=mongo_db, 
+        description= f"Recharge for Rs.{request.amount} is done for mobile number {request.phone_number} on {datetime.now()}.", 
+        recipient_type="user", recipient_id=notify_user.user_id, notif_type="message"
+    )
+    await create_custom_notification(
+        db=mongo_db, 
+        description= f"Recharge for Rs.{request.amount} is done for mobile number {request.phone_number} on {datetime.now()}.", 
+        recipient_type="user", recipient_id=notify_user.user_id, notif_type="in-app"
+    )
     await db.commit()
     await db.refresh(txn)
     return TransactionOut.model_validate(txn)
