@@ -16,6 +16,7 @@ from .api.routes.contact_form.contact_form_router import router as contact_form_
 from .api.routes.content.content_router import router as content_router
 from .api.routes.backup.backup_router import router as backup_router
 from .api.routes.reports.reports_router import router as reports_router
+from .api.routes.analyticas.analytics_router import router as analytics_router
 from .core.database import engine, Base
 from .core.document_db import init_counters
 
@@ -105,8 +106,10 @@ modal.querySelectorAll('*').forEach(el => {
                         dropdown.innerHTML = `
                             <option value="">-- Show All --</option>
                             <option value="Admin">Admin</option>
+                            <option value="Analytics">Analytics</option>
                             <option value="Auth">Auth</option>
                             <option value="Autopay">Autopay</option>
+                            <option value="Backup">Backup</option>
                             <option value="Contact-Form">Contact-Form</option>
                             <option value="Content">Content</option>
                             <option value="Notification">Notification</option>
@@ -114,11 +117,10 @@ modal.querySelectorAll('*').forEach(el => {
                             <option value="Plans">Plans</option>
                             <option value="Recharge">Recharge</option>
                             <option value="Referrals">Referrals</option>
+                            <option value="Reports">Reports</option>
                             <option value="Roles">Roles</option>
                             <option value="Testing">Testing</option>
                             <option value="Users">Users</option>
-                            <option value="Backup">Backup</option>
-                            <option value="Reports">Reports</option>
                         `;
 
                         
@@ -170,6 +172,8 @@ app.include_router(contact_form_router, prefix="/contact-from", tags=["Contact-F
 app.include_router(content_router, prefix="/content", tags=["Content"])
 app.include_router(backup_router, prefix="/backup", tags=["Backup"])
 app.include_router(reports_router, prefix="/reports", tags=["Reports"])
+app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+
 
 
 
