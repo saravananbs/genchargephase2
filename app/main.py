@@ -15,6 +15,7 @@ from .api.routes.referrals.referrals_router import router as referrals_router
 from .api.routes.contact_form.contact_form_router import router as contact_form_router
 from .api.routes.content.content_router import router as content_router
 from .api.routes.backup.backup_router import router as backup_router
+from .api.routes.reports.reports_router import router as reports_router
 from .core.database import engine, Base
 from .core.document_db import init_counters
 
@@ -117,6 +118,7 @@ modal.querySelectorAll('*').forEach(el => {
                             <option value="Testing">Testing</option>
                             <option value="Users">Users</option>
                             <option value="Backup">Backup</option>
+                            <option value="Reports">Reports</option>
                         `;
 
                         
@@ -167,6 +169,7 @@ app.include_router(notification_router, prefix="/notification", tags=["Notificat
 app.include_router(contact_form_router, prefix="/contact-from", tags=["Contact-Form"])
 app.include_router(content_router, prefix="/content", tags=["Content"])
 app.include_router(backup_router, prefix="/backup", tags=["Backup"])
+app.include_router(reports_router, prefix="/reports", tags=["Reports"])
 
 
 
