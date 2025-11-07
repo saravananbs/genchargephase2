@@ -1,13 +1,17 @@
 # services/backup_service.py
 from typing import Dict, Any, Optional
+from motor.motor_asyncio import AsyncIOMotorClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.backup import Backup
 from ..core.database import get_db
+from ..core.document_db import get_mongo_db
 import uuid
+from ..schemas.backup import BackupRestoreLog, BackupRestoreLogCreate
 from datetime import datetime
 
 async def create_backup_record(
     db: AsyncSession,
+    backup_id: str,
     backup_data: str,
     snapshot_name: str,
     storage_url: Optional[str] = None,
@@ -36,7 +40,7 @@ async def create_backup_record(
         Backup: The created ORM instance
     """
     # Generate unique backup_id if not provided
-    backup_id = str(uuid.uuid4())
+    
 
     # Create new Backup instance
     backup_record = Backup(
@@ -57,3 +61,34 @@ async def create_backup_record(
     await db.refresh(backup_record)  # Optional: reload with DB-generated values
 
     return backup_record
+
+async def insert_backup_restore_log(
+    log_data: BackupRestoreLogCreate,
+    mongo_db = None  # Will use get_mongo_db() if not provided
+) -> BackupRestoreLog:
+    """
+    Insert a log entry into BackupRestoreLogs collection using Motor.
+    Uses your existing `get_mongo_db()` async context.
+    """
+    if mongo_db is None:
+        async with get_mongo_db() as mongo_db:
+            return await _insert_log(log_data, mongo_db)
+    else:
+        return await _insert_log(log_data, mongo_db)
+
+
+async def _insert_log(
+    log_data: BackupRestoreLogCreate,
+    mongo_db: AsyncIOMotorClient
+) -> BackupRestoreLog:
+    collection = mongo_db["BackupRestoreLogs"]
+
+    log_entry = log_data.dict()
+    log_entry["log_id"] = str(uuid.uuid4())
+    log_entry["created_at"] = datetime.utcnow()
+
+    result = await collection.insert_one(log_entry)
+    
+    # Return full object
+    inserted = await collection.find_one({"_id": result.inserted_id})
+    return BackupRestoreLog(**inserted)
