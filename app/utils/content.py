@@ -2,6 +2,8 @@ import os
 import uuid
 import shutil
 from fastapi import UploadFile, HTTPException
+from datetime import datetime, timezone
+
 
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -36,3 +38,12 @@ def delete_image_file(filename: str):
     file_path = os.path.join(UPLOAD_DIR, filename)
     if os.path.exists(file_path):
         os.remove(file_path)
+
+
+def make_naive(dt: datetime) -> datetime:
+    """Convert offset-aware datetime to naive UTC datetime."""
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
