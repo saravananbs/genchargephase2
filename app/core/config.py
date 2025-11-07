@@ -12,5 +12,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     MONGO_URL: str = os.getenv("MONGO_URL", "mongodb://localhost:27017")
     MONGO_DB_NAME: str  = os.getenv("MONGO_DB_NAME", "gencharge")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "saravanan")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "saravanan24")
 
 settings = Settings()
