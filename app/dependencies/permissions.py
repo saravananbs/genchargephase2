@@ -63,9 +63,6 @@ async def require_scopes(
         if p.delete:
             available_scopes.add(f"{p.resource}:delete")
 
-    print(security_scopes.scopes)
-    print(available_scopes)
-
     if not set(security_scopes.scopes).issubset(available_scopes):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
