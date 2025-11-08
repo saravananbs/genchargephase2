@@ -1,6 +1,6 @@
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, cast , BigInteger
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from ..models.users import User
 from ..models.admins import Admin

@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
-from ..crud.analytics import (
+from ..crud import backup_analytics as crud_backups
+from ..crud.users_admin_analytics import (
     crud_avg_wallet_balance, crud_count_users_between, crud_count_users_by_status,
     crud_count_users_by_type, crud_top_referrers, crud_total_users,
     crud_users_trend_by_day, crud_users_trend_by_month, total_admins, count_admins_between, 
@@ -8,7 +9,7 @@ from ..crud.analytics import (
 )
 from ..models.users import UserStatus
 from ..utils.analytics import range_for_period, now_tz, period_ranges
-from ..schemas.analytics import UsersReport, TrendPoint, DistributionItem, PeriodCount, AdminsReport
+from ..schemas.users_admins_analytics import UsersReport, TrendPoint, DistributionItem, PeriodCount, AdminsReport
 
 # Users service
 async def build_users_report(db: AsyncSession) -> UsersReport:
@@ -160,3 +161,4 @@ async def build_admins_report(db: AsyncSession) -> AdminsReport:
         growth_rates={"month_over_month_pct": round(month_over_month_pct, 2)}
     )
     return report
+

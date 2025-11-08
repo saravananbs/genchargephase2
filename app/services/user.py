@@ -1,4 +1,3 @@
-# services/user_preference.py
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..crud import users as crud_pref
