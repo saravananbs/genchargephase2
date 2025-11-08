@@ -12,9 +12,3 @@ async def get_mongo_db() -> AsyncGenerator:
     finally:
         pass
 
-async def init_counters():
-    await db.counters.update_one(
-        {"_id": "notification_id"},
-        {"$setOnInsert": {"seq": 0}},
-        upsert=True
-    )

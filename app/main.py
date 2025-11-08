@@ -18,7 +18,6 @@ from .api.routes.backup.backup_router import router as backup_router
 from .api.routes.reports.reports_router import router as reports_router
 from .api.routes.analyticas.analytics_router import router as analytics_router
 from .core.database import engine, Base
-from .core.document_db import init_counters
 
 from contextlib import asynccontextmanager
 from app.models import *
@@ -29,8 +28,6 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("Database tables created successfully.")
-    await init_counters()
-    print("MongoDB notification_id counter initialized.")
 
     yield 
 
