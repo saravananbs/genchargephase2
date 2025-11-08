@@ -48,7 +48,7 @@ def evaluate_criteria(criteria: Optional[dict], context: dict) -> bool:
         return True
 
     cond = criteria["conditions"]
-    now = datetime.utcnow()
+    now = datetime.now()
 
     if cond.get("valid_from"):
         if datetime.fromisoformat(cond["valid_from"].replace("Z", "+00:00")) > now:
