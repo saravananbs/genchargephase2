@@ -4,6 +4,8 @@ from jose import JWTError, jwt
 from uuid import uuid4
 import datetime
 
+from ..core.document_db import get_mongo_db
+from ..crud.audit_logs import insert_audit_log
 from ..core.database import get_db
 from ..crud.users import create_user, get_user_by_phone, get_user_by_id, create_user_preference
 from ..crud.admin import get_admin_by_phone, get_admin_role_by_phone, get_admin_by_id
@@ -72,6 +74,14 @@ class AuthService:
         )
 
         del self.otp_store[key]
+        mongo_db = await get_mongo_db().__anext__()
+        await insert_audit_log(
+            db=mongo_db,
+            action="User signup completed",
+            service="auth_service",
+            user_id=f"US_{user.user_id}",
+            status="success"
+        )
         return Token(access_token=access_token, refresh_token=None, token_type="bearer")
 
     # -------------------- LOGIN -------------------- #
@@ -137,6 +147,26 @@ class AuthService:
             samesite="lax",
             max_age=7 * 24 * 60 * 60
         )
+        
+        mongo_db = await get_mongo_db().__anext__()
+        if identity_type == "user":
+            user = await get_user_by_phone(self.db, request.phone_number)
+            await insert_audit_log(
+                db=mongo_db,
+                action="User login successful",
+                service="auth_service",
+                user_id=f"US_{user.user_id}",
+                status="success"
+            )
+        else:
+            admin = await get_admin_by_phone(self.db, request.phone_number)
+            await insert_audit_log(
+                db=mongo_db,
+                action="Admin login successful",
+                service="auth_service",
+                user_id=f"AD_{admin.admin_id}",
+                status="success"
+            )
 
         return Token(access_token=access_token, refresh_token=None, token_type="bearer")
 
@@ -164,6 +194,23 @@ class AuthService:
             await revoke_token(self.db, session.jti, refresh_token, current_user.admin_id, "logout", session.refresh_token_expires_at)
 
         response.delete_cookie("refresh_token")
+        mongo_db = await get_mongo_db().__anext__()
+        if role == "user":
+            await insert_audit_log(
+                db=mongo_db,
+                action="User logged out",
+                service="auth_service",
+                user_id=f"US_{current_user.user_id}",
+                status="success"
+            )
+        else:
+            await insert_audit_log(
+                db=mongo_db,
+                action="Admin logged out",
+                service="auth_service",
+                user_id=f"AD_{current_user.admin_id}",
+                status="success"
+            )
         return {"message": "Logged out successfully"}
 
     # -------------------- REFRESH TOKEN -------------------- #
@@ -208,5 +255,24 @@ class AuthService:
             samesite="lax",
             max_age=7 * 24 * 60 * 60
         )
+        mongo_db = await get_mongo_db().__anext__()
+        if role == "user":
+            user = await get_user_by_phone(self.db, phone)
+            await insert_audit_log(
+                db=mongo_db,
+                action="User token refreshed",
+                service="auth_service",
+                user_id=f"US_{user.user_id}",
+                status="success"
+            )
+        else:
+            admin = await get_admin_by_phone(self.db, phone)
+            await insert_audit_log(
+                db=mongo_db,
+                action="Admin token refreshed",
+                service="auth_service",
+                user_id=f"AD_{admin.admin_id}",
+                status="success"
+            )
 
         return Token(access_token=new_access_token, refresh_token=None, token_type="bearer")

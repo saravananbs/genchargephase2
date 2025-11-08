@@ -18,6 +18,7 @@ from .api.routes.backup.backup_router import router as backup_router
 from .api.routes.reports.reports_router import router as reports_router
 from .api.routes.analyticas.analytics_router import router as analytics_router
 from .core.database import engine, Base
+from .middleware import add_cors_middleware, add_exception_middleware, add_logging_middleware
 
 from contextlib import asynccontextmanager
 from app.models import *
@@ -44,6 +45,12 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan
 )
+
+
+add_cors_middleware(app)          
+add_logging_middleware(app)       
+add_exception_middleware(app)    
+
 
 @app.get("/docs", include_in_schema=False)
 def custom_docs():
