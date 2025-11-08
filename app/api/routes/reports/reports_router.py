@@ -21,12 +21,13 @@ from ....core.database import get_db
 
 router = APIRouter()
 
-@router.post("/admins-report")
+
+@router.get("/admins-report")
 async def admin_report(
-    filters: AdminReportFilter, session=Depends(get_db),
+    filters: AdminReportFilter = Depends(), 
+    session=Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Admins:read"], use_cache=False)
-
 ):
     result = await generate_admin_report(session, filters)
 
@@ -42,9 +43,9 @@ async def admin_report(
     })
 
 
-@router.post("/autopay-report")
+@router.get("/autopay-report")
 async def autopay_report(
-    filters: AutoPayReportFilter,
+    filters: AutoPayReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Autopay:read"], use_cache=False)
@@ -68,9 +69,9 @@ async def autopay_report(
     })
 
 
-@router.post("/backup-report")
+@router.get("/backup-report")
 async def backup_report(
-    filters: BackupReportFilter,
+    filters: BackupReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Backup:read"], use_cache=False)
@@ -91,9 +92,9 @@ async def backup_report(
     )
 
 
-@router.post("/current-active-plans-report")
+@router.get("/current-active-plans-report")
 async def current_active_plans_report(
-    filters: CurrentActivePlansFilter,
+    filters: CurrentActivePlansFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Recharge:read"], use_cache=False)
@@ -112,9 +113,9 @@ async def current_active_plans_report(
     })
 
 
-@router.post("/offers-report")
+@router.get("/offers-report")
 async def offers_report(
-    filters: OfferReportFilter,
+    filters: OfferReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Offers:read"], use_cache=False)
@@ -138,9 +139,9 @@ async def offers_report(
     })
 
 
-@router.post("/plans-report")
+@router.get("/plans-report")
 async def plans_report(
-    filters: PlanReportFilter, 
+    filters: PlanReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Plans:read"], use_cache=False)
@@ -161,9 +162,9 @@ async def plans_report(
     })
 
 
-@router.post("/referral-report")
+@router.get("/referral-report")
 async def referral_report(
-    filters: ReferralReportFilter,
+    filters: ReferralReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Referral:read"], use_cache=False)
@@ -185,9 +186,9 @@ async def referral_report(
     })
 
 
-@router.post("/role-permission-report")
+@router.get("/role-permission-report")
 async def role_permissions_report(
-    filters: RolePermissionReportFilter,
+    filters: RolePermissionReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Admins:read"], use_cache=False)
@@ -209,9 +210,9 @@ async def role_permissions_report(
     )
 
 
-@router.post("/sessions-report")
+@router.get("/sessions-report")
 async def sessions_report(
-    filters: SessionsReportFilter,
+    filters: SessionsReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Sessions:read"], use_cache=False)
@@ -235,9 +236,9 @@ async def sessions_report(
     })
 
 
-@router.post("/transactions-report")
+@router.get("/transactions-report")
 async def transactions_report(
-    filters: TransactionsReportFilter,
+    filters: TransactionsReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Recharge:read"], use_cache=False)
@@ -259,9 +260,9 @@ async def transactions_report(
     })
 
 
-@router.post("/archived-users-report")
+@router.get("/archived-users-report")
 async def users_archive_report(
-    filters: UsersArchiveFilter,
+    filters: UsersArchiveFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Users:read"], use_cache=False)
@@ -285,9 +286,9 @@ async def users_archive_report(
     })
 
 
-@router.post("/users-report")
+@router.get("/users-report")
 async def users_report(
-    filters: UsersReportFilter,
+    filters: UsersReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Users:read"], use_cache=False)
@@ -309,9 +310,9 @@ async def users_report(
     })
 
 
-@router.post("/me/transactions-report")
+@router.get("/me/transactions-report")
 async def transactions_report(
-    filters: UserTransactionsReportFilter,
+    filters: UserTransactionsReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user: User =Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["User"], use_cache=False)
@@ -332,3 +333,4 @@ async def transactions_report(
     return StreamingResponse(buffer, media_type=content_type, headers={
         "Content-Disposition": f"attachment; filename={filename}"
     })
+
