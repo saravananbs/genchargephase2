@@ -8,7 +8,7 @@ from ....services.analytics import build_users_report, build_admins_report
 
 router = APIRouter()
 
-@router.get("/reports/users", response_model=UsersReport)
+@router.get("/users", response_model=UsersReport)
 async def get_users_report(db: AsyncSession = Depends(get_db)):
     """
     Returns a comprehensive users report with counts, trends, distributions and growth rates.
@@ -21,9 +21,11 @@ async def get_users_report(db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@router.get("/reports/admins", response_model=AdminsReport)
+@router.get("/admins", response_model=AdminsReport)
 async def get_admins_report(db: AsyncSession = Depends(get_db)):
     try:
         return await build_admins_report(db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+

@@ -550,3 +550,60 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserTransactionsReportFilter(BaseModel):
+    txn_ids: Optional[List[int]] = None
+
+    categories: Optional[List[Literal["wallet", "service"]]] = None
+    txn_types: Optional[List[Literal["credit", "debit"]]] = None
+
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
+
+    service_types: Optional[List[Literal["prepaid", "postpaid"]]] = None
+    plan_ids: Optional[List[int]] = None
+    offer_ids: Optional[List[int]] = None
+
+    to_phone_numbers: Optional[List[str]] = None
+
+    sources: Optional[List[Literal["recharge", "wallet_topup", "refund", "referral_reward", "autopay"]]] = None
+    statuses: Optional[List[Literal["success", "failed", "pending"]]] = None
+    payment_methods: Optional[List[Literal["UPI", "Card", "NetBanking", "Wallet"]]] = None
+    payment_transaction_id_contains: Optional[str] = None
+
+    created_from: Optional[datetime] = None
+    created_to: Optional[datetime] = None
+
+    # ordering & pagination
+    order_by: Optional[Literal[
+        "txn_id", "user_id", "amount", "created_at", "category", "txn_type", "service_type", "source", "status", "payment_method"
+    ]] = "created_at"
+    order_dir: Optional[Literal["asc", "desc"]] = "desc"
+
+    # If limit==0 OR offset==0 => skip pagination
+    limit: Optional[int] = Field(default=0, description="0 means no pagination")
+    offset: Optional[int] = Field(default=0, description="0 means no pagination")
+
+    export_type: Optional[Literal["none", "csv", "excel", "pdf"]] = "none"
+
+
+class UserTransactionOut(BaseModel):
+    txn_id: int
+    user_id: Optional[int]
+    category: str
+    txn_type: str
+    amount: Decimal
+    service_type: Optional[str]
+    plan_id: Optional[int]
+    offer_id: Optional[int]
+    from_phone_number: Optional[str]
+    to_phone_number: Optional[str]
+    source: str
+    status: str
+    payment_method: Optional[str]
+    payment_transaction_id: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

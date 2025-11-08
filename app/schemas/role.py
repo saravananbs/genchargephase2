@@ -35,6 +35,6 @@ class RoleListFilters(BaseModel):
     role_name: Optional[str] = None
     permission_resource: Optional[str] = None
     skip: int = 0
-    limit: int = 10
+    limit: int = 0
     sort_by: Optional[Literal["role_name"]] = None
     sort_order: Optional[Literal["asc", "desc"]] = "asc"

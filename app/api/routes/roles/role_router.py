@@ -1,7 +1,9 @@
 # api/routes/roles.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from ....dependencies.auth import get_current_user
+from ....dependencies.permissions import require_scopes
 from ....core.database import get_db
 from ....schemas.role import RoleCreate, RoleUpdate, RoleResponse, PermissionBase, RoleListFilters
 from ....crud import role as crud_roles
@@ -12,7 +14,9 @@ router = APIRouter()
 @router.get("/", response_model=List[RoleResponse])
 async def list_roles(
     filters: RoleListFilters = Depends(),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Roles:read"], use_cache=False)
 ):
     roles = await crud_roles.get_all_roles(db, filters)
     return [
@@ -37,7 +41,11 @@ async def list_roles(
 
 # ---------- Get a single role ----------
 @router.get("/{role_id}", response_model=RoleResponse)
-async def get_role(role_id: int, db: AsyncSession = Depends(get_db)):
+async def get_role(
+    role_id: int, db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Roles:read"], use_cache=False)
+):
     role = await crud_roles.get_role_by_id(db, role_id)
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
@@ -61,7 +69,11 @@ async def get_role(role_id: int, db: AsyncSession = Depends(get_db)):
 
 # ---------- Create role ----------
 @router.post("/", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
-async def create_role(role_data: RoleCreate, db: AsyncSession = Depends(get_db)):
+async def create_role(
+    role_data: RoleCreate, db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Roles:write"], use_cache=False)     
+):
     role = await crud_roles.create_role(db, role_data.role_name, role_data.permission_ids)
     return {
             "role_id": role.role_id,
@@ -84,7 +96,9 @@ async def create_role(role_data: RoleCreate, db: AsyncSession = Depends(get_db))
 async def update_role_endpoint(
     role_id: int,
     role_data: RoleUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Roles:edit"], use_cache=False)
 ):
     role = await crud_roles.update_role(
         db, role_id, role_data.role_name, role_data.permission_ids
@@ -107,11 +121,19 @@ async def update_role_endpoint(
 
 # ---------- Delete role ----------
 @router.delete("/{role_id}")
-async def delete_role(role_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_role(
+    role_id: int, db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Roles:delete"], use_cache=False)
+):
     return await crud_roles.delete_role(db, role_id)
 
 # ---------- List all permissions ----------
 @router.get("/permissions/all", response_model=List[PermissionBase])
-async def list_permissions(db: AsyncSession = Depends(get_db)):
+async def list_permissions(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Roles:read"], use_cache=False)
+):
     permissions = await crud_roles.get_all_permissions(db)
     return permissions

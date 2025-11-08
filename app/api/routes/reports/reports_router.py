@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, Security
 from fastapi.encoders import jsonable_encoder
+from ....models.admins import Admin
+from ....models.users import User
 from ....dependencies.auth import get_current_user
 from ....dependencies.permissions import require_scopes
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -7,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ....schemas.reports import (
     AdminReportFilter, AutoPayReportFilter, BackupReportFilter, CurrentActivePlansFilter,
     OfferReportFilter, PlanReportFilter, ReferralReportFilter, RolePermissionReportFilter,
-    SessionsReportFilter, TransactionsReportFilter, UsersArchiveFilter, UsersReportFilter
+    SessionsReportFilter, TransactionsReportFilter, UsersArchiveFilter, UsersReportFilter, UserTransactionsReportFilter
 )
 from ....services.reports import (
     generate_admin_report, generate_autopay_report, generate_backup_report, generate_current_active_plans_report,
@@ -283,7 +285,7 @@ async def users_archive_report(
     })
 
 
-@router.post("/report")
+@router.post("/users-report")
 async def users_report(
     filters: UsersReportFilter,
     session: AsyncSession = Depends(get_db),
@@ -297,6 +299,31 @@ async def users_report(
     Pagination applied only when both limit>0 and offset>0. Otherwise skip pagination.
     """
     result = await generate_users_report(session, filters)
+
+    if isinstance(result, list) or isinstance(result, dict):
+        return JSONResponse(content=jsonable_encoder(result))
+
+    buffer, content_type, filename = result
+    return StreamingResponse(buffer, media_type=content_type, headers={
+        "Content-Disposition": f"attachment; filename={filename}"
+    })
+
+
+@router.post("/me/transactions-report")
+async def transactions_report(
+    filters: UserTransactionsReportFilter,
+    session: AsyncSession = Depends(get_db),
+    current_user: User =Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+):
+    """
+    Request body: TransactionsReportFilter
+    Returns JSON list or downloadable CSV/Excel/PDF.
+    Pagination is skipped if either limit==0 or offset==0 (i.e., applied only when limit>0 and offset>0).
+    """
+    new_filters = TransactionsReportFilter(**filters.model_dump())
+    new_filters.user_ids = [current_user.user_id]
+    result = await generate_transactions_report(session, new_filters)
 
     if isinstance(result, list) or isinstance(result, dict):
         return JSONResponse(content=jsonable_encoder(result))
