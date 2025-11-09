@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/autopay.py
 from datetime import datetime
 from typing import Literal
 from fastapi import APIRouter, Depends, Query, HTTPException, Security
@@ -35,7 +34,7 @@ async def add_autopay(
     payload: AutoPayCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     return await create_user_autopay(db, obj_in=payload, current_user_id=current_user.user_id)
 
@@ -45,7 +44,7 @@ async def get_one_autopay(
     autopay_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     return await get_user_autopay(db, autopay_id=autopay_id, current_user_id=current_user.user_id)
 
@@ -65,7 +64,7 @@ async def list_my_autopays(
     ] = "created_at_desc",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     return await list_user_autopays(
         db,
@@ -85,7 +84,7 @@ async def edit_autopay(
     payload: AutoPayUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     return await update_user_autopay(
         db, autopay_id=autopay_id, obj_in=payload, current_user_id=current_user.user_id
@@ -97,7 +96,7 @@ async def remove_autopay(
     autopay_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     await delete_user_autopay(db, autopay_id=autopay_id, current_user_id=current_user.user_id)
     return None
@@ -119,7 +118,7 @@ async def admin_list_all(
     ] = "created_at_desc",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Autopay:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Autopay:read"])
 ):
     return await list_all_autopays(
         db, page=page, size=size, status=status, tag=tag, sort=sort, phone_number=phone_number
@@ -130,7 +129,7 @@ async def admin_list_all(
 async def admin_process_due(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Autopay:write"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Autopay:write"])
 ):
     """
     Executes all **regular** autopays whose `next_due_date <= now`.

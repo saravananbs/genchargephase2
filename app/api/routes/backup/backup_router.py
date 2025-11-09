@@ -30,7 +30,7 @@ async def create_backup(
     db = Depends(get_db),
     mongo_db = Depends(get_mongo_db),
     current_user: Admin = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Backup:write"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Backup:write"])
 ):
     """
     Perform pg_dump backup for specified tables with optional date range filtering.
@@ -116,7 +116,8 @@ async def create_backup(
 @router.get("/", response_model=List[BackupResponse])
 async def list_backups(db: AsyncSession = Depends(get_db), 
     current_user: Admin = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Backup:read"], use_cache=False)):
+    authorized = Security(require_scopes, scopes=["Backup:read"])
+):
     """
     Retrieve all backup records from the database.
     """
@@ -133,7 +134,7 @@ async def delete_backup(
     db: AsyncSession = Depends(get_db),
     mongo_db = Depends(get_mongo_db),
     current_user: Admin = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Backup:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Backup:delete"])
 ):
     """
     Delete backup record from DB and optionally remove the file.
@@ -173,7 +174,7 @@ async def restore_backup(
     db: AsyncSession = Depends(get_db),
     mongo_db = Depends(get_mongo_db),
     current_user: Admin = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Backup:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Backup:edit"])
 ):
     """
     Restore backup using `pg_restore`. Runs in background.

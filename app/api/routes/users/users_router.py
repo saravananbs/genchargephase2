@@ -24,7 +24,7 @@ async def list_users(
     filters: UserListFilters = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:read"])
 ):
     users = await crud_user.get_users(db, filters)
     return users
@@ -36,7 +36,7 @@ async def list_archived_users(
     filters: UserListFilters = Depends(),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:read"])
 ):
     archived = await crud_user.get_archived_users(db, filters)
     return archived
@@ -48,7 +48,7 @@ async def block_user(
     user_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:edit"])
 ):
     user = await crud_user.block_user(db, user_id)
     if not user:
@@ -63,7 +63,7 @@ async def unblock_user(
     user_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:edit"])
 ):
     user = await crud_user.unblock_user(db, user_id)
     if not user:
@@ -77,7 +77,7 @@ async def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:delete"])
 ):
     deleted = await crud_user.delete_user(db, user_id)
     if not deleted:
@@ -91,7 +91,7 @@ async def get_my_info(
     request: Request,
     response: Response,
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     return current_user
 
@@ -102,7 +102,7 @@ async def update_email(
     data: UserEditEmail,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     updated = await crud_user.update_email(db, current_user.user_id, data.email)
     if not updated:
@@ -116,7 +116,7 @@ async def switch_user_type(
     data: UserSwitchType,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     updated = await crud_user.switch_user_type(db, current_user.user_id, data.user_type)
     if not updated:
@@ -129,7 +129,7 @@ async def deactivate_account(
     response: Response,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     updated = await crud_user.deactivate_user(db, current_user.user_id)
     if not updated:
@@ -142,7 +142,7 @@ async def reactivate_account(
     response: Response,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     updated = await crud_user.reactivate_user(db, current_user.user_id)
     if not updated:
@@ -155,7 +155,7 @@ async def delete_my_account(
     response: Response,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     deleted = await crud_user.delete_user_account(db, current_user.user_id)
     if not deleted:
@@ -166,7 +166,7 @@ async def delete_my_account(
 async def update_user_preferences(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     result = await crud_user.get_user_preference(db, current_user.user_id)
     return result
@@ -176,7 +176,7 @@ async def update_user_preferences(
     data: UserPreferenceUpdate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     updated_pref = await update_preferences_service(db, current_user.user_id, data)
     return updated_pref

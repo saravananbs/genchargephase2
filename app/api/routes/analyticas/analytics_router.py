@@ -151,7 +151,7 @@ async def get_users_report(
 async def get_user_insights(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 
 ):
     try:

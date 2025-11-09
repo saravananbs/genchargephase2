@@ -25,7 +25,7 @@ async def register_user_route(
     data: UserRegisterRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     user = await crud_user.register_user(db, current_user, data.name, data.email, data.referee_code)
     return user

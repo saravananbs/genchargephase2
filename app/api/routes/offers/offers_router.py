@@ -85,7 +85,7 @@ async def create_offer(
     payload: OfferCreate,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:write"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Offers:write"])
 ):
     
     result = await offer_crud.create_offer(db, payload, created_by=current_user.admin_id)
@@ -98,7 +98,7 @@ async def update_offer(
     payload: OfferUpdate,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Offers:edit"])
 ):
     return await offer_crud.update_offer(db, offer_id, payload)
 
@@ -108,7 +108,7 @@ async def delete_offer(
     offer_id: int,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Offers:delete"])
 ):
     await offer_crud.delete_offer(db, offer_id)
     return None
@@ -119,7 +119,7 @@ async def list_offers(
     filters: OfferFilter = Depends(),
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Offers:read"])
 ):
     offers = await offer_crud.list_offers(db, filters)
     return offers
@@ -130,7 +130,7 @@ async def get_offer(
     offer_id: int,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Offers:read"])
 ):
     offer = await offer_crud.get_offer_by_id(db, offer_id)
     if not offer:

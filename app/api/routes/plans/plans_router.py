@@ -20,7 +20,7 @@ async def create_plan_group(
     payload: PlanGroupCreate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:write"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["PlanGroups:write"])
 ):
     # Check if group name already exists
     result = await db.execute(
@@ -42,7 +42,7 @@ async def get_plan_groups(
     filters: PlanGroupFilter = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["PlanGroups:read"])
 ):
     query = select(PlanGroup)
     if filters.search:
@@ -64,7 +64,7 @@ async def get_plan_group(
     group_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["PlanGroups:read"])
 ):
     result = await db.execute(
         select(PlanGroup).where(PlanGroup.group_id == group_id)
@@ -81,7 +81,7 @@ async def update_plan_group(
     payload: PlanGroupUpdate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["PlanGroups:edit"])
 ):
     result = await db.execute(
         select(PlanGroup).where(PlanGroup.group_id == group_id)
@@ -114,7 +114,7 @@ async def delete_plan_group(
     group_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["PlanGroups:delete"])
 ):
     result = await db.execute(
         select(PlanGroup).where(PlanGroup.group_id == group_id)
@@ -133,7 +133,7 @@ async def create_plan(
     plan_data: PlanCreate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:write"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Plans:write"])
 ):
     new_plan = Plan(**plan_data.model_dump(), created_by=current_user.admin_id)
     db.add(new_plan)
@@ -162,7 +162,7 @@ async def update_plan(
     plan_data: PlanUpdate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Plans:edit"])
 ):
     result = await db.execute(select(Plan).where(Plan.plan_id == plan_id))
     plan = result.scalar_one_or_none()
@@ -195,7 +195,7 @@ async def delete_plan(
     plan_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Plans:delete"])
 ):
     result = await db.execute(select(Plan).where(Plan.plan_id == plan_id))
     plan = result.scalar_one_or_none()
@@ -213,7 +213,7 @@ async def get_all_plans(
     filters: PlanFilter = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Plans:read"])
 ):
     query = select(Plan)
 
@@ -248,7 +248,7 @@ async def get_plan_by_id(
     plan_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Plans:read"])
 ):
     result = await db.execute(select(Plan).where(Plan.plan_id == plan_id))
     plan = result.scalar_one_or_none()

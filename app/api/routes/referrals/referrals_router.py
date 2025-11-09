@@ -27,7 +27,7 @@ async def my_referral_history(
     ] = "created_at_desc",
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     """View your own referral earnings (as referrer OR referred)"""
     return await get_my_referral_history(
@@ -51,7 +51,7 @@ async def admin_referral_history(
     ] = "created_at_desc",
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Referral:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Referral:read"])
 ):
     """Admin: View all referral rewards in the system"""
     return await get_all_referral_history(

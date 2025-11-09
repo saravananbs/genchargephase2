@@ -1,4 +1,3 @@
-# routers/notification.py
 from fastapi import APIRouter, Depends, Query, Security
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List
@@ -25,7 +24,7 @@ async def create_announcement(
     payload: AnnouncementCreate,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: Admin = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Announcement:edit"])
+    authorized = Security(require_scopes, scopes=["Announcement:write"])
 ):
     return await service_create_announcement(db, payload, current_user)
 
@@ -34,7 +33,7 @@ async def create_announcement(
 async def get_my_notifications(
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: Admin | User = Depends(get_current_user),
-    # authorized = Security(require_scopes, scopes=["Announcement:edit"])
+    # no ned of scopes cause any admin or user can get their noti
 ):
     return await service_get_my_notifications(db=db, current_user=current_user)
     
@@ -44,6 +43,6 @@ async def delete_notification(
     payload: NotificationDelete,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: User | Admin = Depends(get_current_user),
-    # authorized = Security(require_scopes, scopes=["Announcement:edit"])
+    # no need of scopes cause any admin or user can delete their noti
 ):
     return await service_delete_notification(db=db, current_user=current_user, payload=payload)

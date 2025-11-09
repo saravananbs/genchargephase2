@@ -16,7 +16,7 @@ async def list_roles(
     filters: RoleListFilters = Depends(),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Roles:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Roles:read"])
 ):
     roles = await crud_roles.get_all_roles(db, filters)
     return [
@@ -44,7 +44,7 @@ async def list_roles(
 async def get_role(
     role_id: int, db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Roles:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Roles:read"])
 ):
     role = await crud_roles.get_role_by_id(db, role_id)
     if not role:
@@ -72,7 +72,7 @@ async def get_role(
 async def create_role(
     role_data: RoleCreate, db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Roles:write"], use_cache=False)     
+    authorized = Security(require_scopes, scopes=["Roles:write"])     
 ):
     role = await crud_roles.create_role(db, role_data.role_name, role_data.permission_ids)
     return {
@@ -98,7 +98,7 @@ async def update_role_endpoint(
     role_data: RoleUpdate,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Roles:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Roles:edit"])
 ):
     role = await crud_roles.update_role(
         db, role_id, role_data.role_name, role_data.permission_ids
@@ -124,7 +124,7 @@ async def update_role_endpoint(
 async def delete_role(
     role_id: int, db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Roles:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Roles:delete"])
 ):
     return await crud_roles.delete_role(db, role_id)
 
@@ -133,7 +133,7 @@ async def delete_role(
 async def list_permissions(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Roles:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Roles:read"])
 ):
     permissions = await crud_roles.get_all_permissions(db)
     return permissions

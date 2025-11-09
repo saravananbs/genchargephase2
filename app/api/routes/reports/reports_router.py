@@ -27,7 +27,7 @@ async def admin_report(
     filters: AdminReportFilter = Depends(), 
     session=Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admins:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admins:read"])
 ):
     result = await generate_admin_report(session, filters)
 
@@ -48,7 +48,7 @@ async def autopay_report(
     filters: AutoPayReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Autopay:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Autopay:read"])
 
 ):
     """
@@ -74,7 +74,7 @@ async def backup_report(
     filters: BackupReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Backup:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Backup:read"])
 
 ):
     result = await generate_backup_report(session, filters)
@@ -97,7 +97,7 @@ async def current_active_plans_report(
     filters: CurrentActivePlansFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Recharge:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Recharge:read"])
 
 ):
     result = await generate_current_active_plans_report(session, filters)
@@ -118,7 +118,7 @@ async def offers_report(
     filters: OfferReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Offers:read"])
 
 ):
     """
@@ -144,7 +144,7 @@ async def plans_report(
     filters: PlanReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Plans:read"])
 ):
     """
     Request body: PlanReportFilter
@@ -167,7 +167,7 @@ async def referral_report(
     filters: ReferralReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Referral:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Referral:read"])
 
 ):
     """
@@ -191,7 +191,7 @@ async def role_permissions_report(
     filters: RolePermissionReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admins:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admins:read"])
 ):
     """
     Generates Role Permissions report with filters, ordering, pagination, and export options.
@@ -215,7 +215,7 @@ async def sessions_report(
     filters: SessionsReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Sessions:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Sessions:read"])
 
 ):
     """
@@ -241,7 +241,7 @@ async def transactions_report(
     filters: TransactionsReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Recharge:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Recharge:read"])
 
 ):
     """
@@ -265,7 +265,7 @@ async def users_archive_report(
     filters: UsersArchiveFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:read"])
 
 ):
     """
@@ -291,7 +291,7 @@ async def users_report(
     filters: UsersReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Users:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Users:read"])
 
 ):
     """
@@ -315,7 +315,7 @@ async def transactions_report(
     filters: UserTransactionsReportFilter = Depends(),
     session: AsyncSession = Depends(get_db),
     current_user: User =Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["User"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["User"])
 ):
     """
     Request body: TransactionsReportFilter
