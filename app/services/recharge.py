@@ -11,6 +11,7 @@ from ..models.users import User
 from ..models.current_active_plans import CurrentActivePlan
 from ..models.transactions import Transaction
 from ..services.notification import create_custom_notification
+from ..utils.messages import send_sms_fast2sms, send_email
 
 from ..crud.recharge import (
     get_user_by_phone,
@@ -210,10 +211,13 @@ async def subscribe_plan(
 
     notify_user = await get_user_by_phone(db, request.phone_number)
     #create a notification
-    await create_custom_notification(
-        db=mongo_db, 
-        description= f"Recharge for Rs.{plan_amount} is done for mobile number {request.phone_number} on {datetime.now()} plan details - plan name: {plan.plan_name}, plan type: {plan.plan_type}, validity: {plan.validity} price: {plan.price}", 
-        recipient_type="user", recipient_id=notify_user.user_id, notif_type="message"
+    await send_sms_fast2sms(
+        message=f"Recharge for Rs.{plan_amount} is done for mobile number {request.phone_number} on {datetime.now()} plan details - plan name: {plan.plan_name}, plan type: {plan.plan_type}, validity: {plan.validity} price: {plan.price}",
+        to_phone=request.phone_number
+    )
+    await send_email(
+        message=f"Recharge for Rs.{plan_amount} is done for mobile number {request.phone_number} on {datetime.now()} plan details - plan name: {plan.plan_name}, plan type: {plan.plan_type}, validity: {plan.validity} price: {plan.price}",
+        to_email=target_user.email
     )
     await create_custom_notification(
         db=mongo_db, 
@@ -225,6 +229,10 @@ async def subscribe_plan(
     await create_custom_notification(
         db=mongo_db, description= f"Bill is on due for mobile number {request.phone_number}", recipient_type="user", 
         recipient_id=notify_user.user_id, notif_type="message", scheduled_at=(datetime.now() + timedelta(days=(plan.validity-1)))
+    )
+    await create_custom_notification(
+        db=mongo_db, description= f"Bill is on due for mobile number {request.phone_number}", recipient_type="user", 
+        recipient_id=notify_user.user_id, notif_type="email", scheduled_at=(datetime.now() + timedelta(days=(plan.validity-1)))
     )
     await create_custom_notification(
         db=mongo_db, description= f"Bill is on due for mobile number {request.phone_number}", recipient_type="user", 
@@ -268,10 +276,13 @@ async def wallet_topup(
     )
     notify_user = await get_user_by_phone(db, request.phone_number)
     #create a notification
-    await create_custom_notification(
-        db=mongo_db, 
-        description= f"Recharge for Rs.{request.amount} is done for mobile number {request.phone_number} on {datetime.now()}.", 
-        recipient_type="user", recipient_id=notify_user.user_id, notif_type="message"
+    await send_sms_fast2sms(
+        message=f"Recharge for Rs.{request.amount} is done for mobile number {request.phone_number} on {datetime.now()}.",
+        to_phone=request.phone_number
+    )
+    await send_email(
+        message=f"Recharge for Rs.{request.amount} is done for mobile number {request.phone_number} on {datetime.now()}.",
+        to_email=target_user.email
     )
     await create_custom_notification(
         db=mongo_db, 

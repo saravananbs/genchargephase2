@@ -54,6 +54,7 @@ class NotificationType(str, Enum):
     reminder = "reminder"
     message = "message"
     in_app = "in-app"
+    email = "email"
 
 class NotificationCreate(BaseModel):
     description: str = Field(..., description="Notification message")
