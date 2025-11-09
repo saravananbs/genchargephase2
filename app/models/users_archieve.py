@@ -10,6 +10,7 @@ class UserType(enum.Enum):
 class UserStatus(enum.Enum):
     active = "active"
     blocked = "blocked"
+    deactive = "deactive"
 
 class UserArchieve(Base):
     __tablename__ = "UsersArchieve"

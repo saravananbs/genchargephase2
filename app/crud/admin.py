@@ -1,4 +1,3 @@
-# crud/admins.py
 from sqlalchemy import select, update, desc, asc
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -120,14 +119,14 @@ async def create_admin(db: AsyncSession, admin_data: AdminCreate):
             detail=f"Unexpected error: {str(e)}",
         )
 
-async def delete_admin_by_phone(db: AsyncSession, phone_number: str):
-    admin = await get_admin_by_phone(db, phone_number)
+async def delete_admin_by_id(db: AsyncSession, admin_id: int):
+    admin = await get_admin_by_id(db, admin_id=admin_id)
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
 
     await db.delete(admin)
     await db.commit()
-    return {"message": f"Admin with phone {phone_number} deleted"}
+    return {"message": f"Admin with id {admin_id} deleted"}
 
 async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data: AdminUpdate):
     try:
@@ -203,6 +202,23 @@ async def update_admin_by_phone(db: AsyncSession, phone_number: str, admin_data:
 async def update_admin(db: AsyncSession, admin_id: int, admin_data):
     try:
         data = admin_data.model_dump(exclude_unset=True)
+
+        if "role_name" in data and data["role_name"]:
+            role_result = await db.execute(
+                select(Role).where(Role.role_name == data["role_name"])
+            )
+            role = role_result.scalar_one_or_none()
+
+            if not role:
+                all_roles = await db.execute(select(Role.role_name))
+                roles_list = [r for (r,) in all_roles.all()]
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={"error": "Role not found", "available_roles": roles_list},
+                )
+
+            data["role_id"] = role.role_id
+            del data["role_name"]
 
         query = (
             update(Admin)

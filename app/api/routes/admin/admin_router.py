@@ -14,7 +14,7 @@ router = APIRouter()
 async def get_self_admin(
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admin_me:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admin_me:read"])
 ):
     admin = await admin_crud.get_admin_by_id(db, current_user.admin_id)
     if not admin:
@@ -28,7 +28,7 @@ async def update_self_admin(
     data: AdminSelfUpdate,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admin_me:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admin_me:edit"])
 ):
 
     updated_admin = await admin_crud.update_admin(db, current_user.admin_id, data)
@@ -41,7 +41,7 @@ async def list_admins(
     db = Depends(get_db),
     filters: AdminListFilters = Depends(),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admins:read"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admins:read"])
 ):
     admins = await admin_crud.get_admins(db, filters)
     return [AdminOut.model_validate(admin, from_attributes=True) for admin in admins]
@@ -53,36 +53,36 @@ async def create_admin(
     admin_data: AdminCreate,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admins:write"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admins:write"])
 ):
     return await admin_crud.create_admin(db, admin_data)
 
 
 # ✅ DELETE /admins/{phone_number} — Delete an admin
-@router.delete("/{phone_number}")
+@router.delete("/{admin_id}")
 async def delete_admin(
-    phone_number: str,
+    admin_id: int,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admins:delete"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admins:delete"])
 ):
-    return await admin_crud.delete_admin_by_phone(db, phone_number)
+    return await admin_crud.delete_admin_by_id(db, admin_id=admin_id)
 
 
 # ✅ PATCH /admins/{phone_number} — Update admin info and role
-@router.patch("/{phone_number}", response_model=AdminOut)
-async def update_admin_by_phone(
-    phone_number: str,
+@router.patch("/{admin_id}", response_model=AdminOut)
+async def update_admin(
+    admin_id: int,
     data: AdminUpdate,
     db = Depends(get_db),
     current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Admins:edit"], use_cache=False)
+    authorized = Security(require_scopes, scopes=["Admins:edit"])
 ):
-    admin = await admin_crud.get_admin_by_phone(db, phone_number)
+    admin = await admin_crud.get_admin_by_id(db=db, admin_id=admin_id)
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
 
-    updated_admin = await admin_crud.update_admin_by_phone(db, phone_number, data)
+    updated_admin = await admin_crud.update_admin(db, admin_id, data)
     return updated_admin
 
 

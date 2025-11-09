@@ -39,7 +39,11 @@ async def get_admins_report(
     
 
 @router.get("/backup", response_model=BackupsReport)
-async def get_backups_report(db: AsyncSession = Depends(get_db)):
+async def get_backups_report(
+    db: AsyncSession = Depends(get_db),
+    current_user: Admin = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["Backup:read"])
+):
     try:
         return await build_backups_report(db)
     except Exception as e:
