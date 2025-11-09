@@ -3,10 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt
 from uuid import uuid4
 import datetime
+import json
 
 from ..core.document_db import get_mongo_db
 from ..crud.audit_logs import insert_audit_log
 from ..core.database import get_db
+from ..core.redis_client import get_redis
 from ..crud.users import create_user, get_user_by_phone, get_user_by_id, create_user_preference
 from ..crud.admin import get_admin_by_phone, get_admin_role_by_phone, get_admin_by_id
 from ..crud.sessions import create_session, revoke_session, get_session_by_jti
@@ -19,8 +21,6 @@ from ..core.config import settings
 
 
 class AuthService:
-    otp_store = {}
-
     def __init__(self, db: AsyncSession = Depends(get_db)):
         self.db = db
 
@@ -33,33 +33,41 @@ class AuthService:
             raise HTTPException(status_code=400, detail="Account already exists")
 
         otp = '111111'
-        self.__class__.otp_store[request.phone_number] = {
+        redis = await get_redis()
+
+        data = {
             "otp": otp,
-            "expires_at": datetime.datetime.now() + datetime.timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
             "data": request.model_dump(),
             "identity_type": "user"
         }
+
+        await redis.setex(
+            f"otp:{request.phone_number}",
+            settings.OTP_EXPIRE_MINUTES * 60,
+            json.dumps(data)
+        )
+
         await send_otp(request.phone_number, otp)
         return {"message": f"OTP sent to {request.phone_number}"}
 
     async def verify_otp_signup(self, req: OTPVerifyRequest, response: Response):
-        class request:
-            phone_number = req.phone_number
-            otp = req.otp
-        key = request.phone_number
-        stored = self.__class__.otp_store.get(key)
-        if not stored or datetime.datetime.now() > stored["expires_at"]:
+        redis = await get_redis()
+        stored_data = await redis.get(f"otp:{req.phone_number}")
+
+        if not stored_data:
             raise HTTPException(status_code=400, detail="OTP expired or invalid")
-        if not verify_otp(request.otp, stored["otp"]):
+
+        stored = json.loads(stored_data)
+        if not verify_otp(req.otp, stored["otp"]):
             raise HTTPException(status_code=400, detail="Invalid OTP")
 
         user_data = UserCreatenew(**stored["data"])
         user = await create_user(self.db, user_data)
-        user_pref = await create_user_preference(self.db, user.user_id, {})
+        await create_user_preference(self.db, user.user_id, {})
 
         jti = str(uuid4())
-        access_token = create_access_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})
-        refresh_token = create_refresh_token(data={"sub": request.phone_number, "jti": jti, "role": "user"})
+        access_token = create_access_token(data={"sub": req.phone_number, "jti": jti, "role": "user"})
+        refresh_token = create_refresh_token(data={"sub": req.phone_number, "jti": jti, "role": "user"})
 
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         await create_session(self.db, user.user_id, refresh_token, jti, expires_at)
@@ -73,7 +81,9 @@ class AuthService:
             max_age=7 * 24 * 60 * 60
         )
 
-        del self.otp_store[key]
+        # Remove OTP entry from Redis
+        await redis.delete(f"otp:{req.phone_number}")
+
         mongo_db = await get_mongo_db().__anext__()
         await insert_audit_log(
             db=mongo_db,
@@ -82,6 +92,7 @@ class AuthService:
             user_id=f"US_{user.user_id}",
             status="success"
         )
+
         return Token(access_token=access_token, refresh_token=None, token_type="bearer")
 
     # -------------------- LOGIN -------------------- #
@@ -102,25 +113,32 @@ class AuthService:
             raise HTTPException(status_code=400, detail="Invalid or inactive account")
 
         otp = '111111'
-        self.__class__.otp_store[request.phone_number] = {
+        redis = await get_redis()
+
+        data = {
             "otp": otp,
-            "expires_at": datetime.datetime.now() + datetime.timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
             "identity_type": identity_type,
             "identity_id": identity_id
         }
+
+        await redis.setex(
+            f"otp:{request.phone_number}",
+            settings.OTP_EXPIRE_MINUTES * 60,
+            json.dumps(data)
+        )
 
         await send_otp(request.phone_number, otp)
         return {"message": f"OTP sent to {request.phone_number}"}
 
     async def verify_otp_login(self, req, response: Response):
-        class request:
-            phone_number = req.username
-            otp = req.password
-        key = request.phone_number
-        stored = self.__class__.otp_store.get(key)
-        if not stored or datetime.datetime.now() > stored["expires_at"]:
+        redis = await get_redis()
+        stored_data = await redis.get(f"otp:{req.username}")
+
+        if not stored_data:
             raise HTTPException(status_code=400, detail="OTP expired or invalid")
-        if not verify_otp(request.otp, stored["otp"]):
+
+        stored = json.loads(stored_data)
+        if not verify_otp(req.password, stored["otp"]):
             raise HTTPException(status_code=400, detail="Invalid OTP")
 
         identity_type = stored["identity_type"]
@@ -137,7 +155,7 @@ class AuthService:
         expires_at = datetime.datetime.now() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
         await create_session(self.db, identity_id, refresh_token, jti, expires_at)
-        del self.otp_store[key]
+        await redis.delete(f"otp:{req.username}")
 
         response.set_cookie(
             key="refresh_token",
@@ -150,7 +168,7 @@ class AuthService:
         
         mongo_db = await get_mongo_db().__anext__()
         if identity_type == "user":
-            user = await get_user_by_phone(self.db, request.phone_number)
+            user = await get_user_by_phone(self.db, req.username)
             await insert_audit_log(
                 db=mongo_db,
                 action="User login successful",
@@ -159,7 +177,7 @@ class AuthService:
                 status="success"
             )
         else:
-            admin = await get_admin_by_phone(self.db, request.phone_number)
+            admin = await get_admin_by_phone(self.db, req.username)
             await insert_audit_log(
                 db=mongo_db,
                 action="Admin login successful",

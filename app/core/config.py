@@ -16,5 +16,6 @@ class Settings(BaseSettings):
     MONGO_DB_NAME: str  = os.getenv("MONGO_DB_NAME")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
+    REDIS_URL: str = os.getenv("REDIS_URL")
 
 settings = Settings()
