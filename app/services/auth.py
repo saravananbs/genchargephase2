@@ -102,9 +102,12 @@ class AuthService:
 
         identity_type, identity_id = None, None
 
-        if user and str(user.status) == "UserStatus.active":
-            identity_type = "user"
-            identity_id = user.user_id
+        if user and str(user.status) == "UserStatus.deactive":
+                identity_type = "user"
+                identity_id = user.user_id
+        elif user and str(user.status) == "UserStatus.active":
+                identity_type = "user"
+                identity_id = user.user_id
         elif admin:
             role = await get_admin_role_by_phone(self.db, request.phone_number)
             identity_type = role.role_name
@@ -169,6 +172,11 @@ class AuthService:
         mongo_db = await get_mongo_db().__anext__()
         if identity_type == "user":
             user = await get_user_by_phone(self.db, req.username)
+            if str(user.status) == "UserStatus.deactive":
+                user.status = "active"
+                self.db.add(user)
+                await self.db.commit()
+                await self.db.refresh(user)
             await insert_audit_log(
                 db=mongo_db,
                 action="User login successful",
