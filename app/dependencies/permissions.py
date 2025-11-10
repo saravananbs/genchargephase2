@@ -15,8 +15,22 @@ async def require_scopes(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Verifies that the current user's role has all required scopes.
-    Integrates with Swagger UI's OAuth2 authorize flow automatically.
+    Verify that current user's role has all required scopes for the endpoint.
+
+    Decodes JWT token, retrieves role permissions from database, and checks if required scopes
+    are available. Integrates with Swagger UI OAuth2 authorize flow automatically.
+
+    Args:
+        security_scopes (SecurityScopes): Required scopes from endpoint decorator.
+        token (str): JWT token from Authorization header.
+        db (AsyncSession): Database session dependency.
+
+    Returns:
+        bool: True if all required scopes are available for user's role.
+
+    Raises:
+        HTTPException: 401 if token invalid or missing role claim.
+        HTTPException: 403 if user is not admin or insufficient permissions.
     """
     authenticate_value = f'Bearer scope="{security_scopes.scope_str}"' if security_scopes.scopes else "Bearer"
 

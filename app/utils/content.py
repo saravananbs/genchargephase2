@@ -11,6 +11,20 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
 async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
+    """
+    Persist an uploaded file to the local uploads directory and return its name and URL.
+
+    Args:
+        upload_file (UploadFile): File object received from FastAPI upload endpoint.
+
+    Returns:
+        tuple[str, str]: (filename, url) where `filename` is the saved filename and
+            `url` is the relative path to serve the file. Returns (None, None) when
+            `upload_file.filename` is falsy.
+
+    Raises:
+        HTTPException: 400 if the file extension is not allowed; 500 if saving fails.
+    """
     if not upload_file.filename:
         return None, None
 
@@ -33,6 +47,15 @@ async def save_upload_file(upload_file: UploadFile) -> tuple[str, str]:
     return filename, url
 
 def delete_image_file(filename: str):
+    """
+    Delete an uploaded image file from the local uploads directory if it exists.
+
+    Args:
+        filename (str): The name of the file to remove.
+
+    Returns:
+        None
+    """
     if not filename:
         return
     file_path = os.path.join(UPLOAD_DIR, filename)
@@ -41,7 +64,15 @@ def delete_image_file(filename: str):
 
 
 def make_naive(dt: datetime) -> datetime:
-    """Convert offset-aware datetime to naive UTC datetime."""
+    """
+    Convert an offset-aware datetime to a naive UTC datetime.
+
+    Args:
+        dt (datetime): Input datetime which may be timezone-aware or naive.
+
+    Returns:
+        datetime: A naive datetime in UTC, or `None` if input is `None`.
+    """
     if dt is None:
         return None
     if dt.tzinfo is not None:

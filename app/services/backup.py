@@ -25,15 +25,24 @@ async def perform_pg_dump_backup_async(
     backup_dir: str = "backups",
 ) -> Optional[Dict[str, str]]:
     """
-    Perform pg_dump backup asynchronously using an **existing AsyncSession** from get_db().
-    
+    Perform pg_dump backup asynchronously using an existing AsyncSession.
+
+    This function validates tables and date ranges, executes pg_dump with optional
+    WHERE clause filtering by date range, and returns backup metadata or None on failure.
+
     Args:
-        backup_dir (str): Directory to store backup files
-        table_date_ranges (List[Dict]): List of tables with optional date filtering
-        db_session: Async generator yielding AsyncSession (from get_db())
+        db_session (AsyncSession): Async database session for metadata queries.
+        table_date_ranges (List[Dict]): List of dicts with table_name, date_column,
+            start_date, end_date for filtering backup by date range.
+        backup_dir (str): Directory to store backup files (default: "backups").
 
     Returns:
-        Dict with backup_file, backup_path, size_mb or None on failure
+        Optional[Dict[str, str]]: Dictionary with keys backup_file, backup_path, size_mb
+            on success; None if pg_dump fails or file creation fails.
+
+    Raises:
+        Any exceptions during subprocess execution or session management are logged
+        and None is returned instead of raising.
     """
     # Create backup directory
     os.makedirs(backup_dir, exist_ok=True)
@@ -133,8 +142,24 @@ async def perform_pg_dump_backup_async(
         return None
 
 
-# Background task to run pg_restore
 async def run_pg_restore(cmd: list, backup_id: str, db: AsyncSession):
+    """
+    Execute pg_restore asynchronously and update backup status in the database.
+
+    This function runs a pg_restore subprocess, captures output, and updates
+    the Backup record with success or failure status and error details.
+
+    Args:
+        cmd (list): Command and arguments to execute as the subprocess.
+        backup_id (str): ID of the Backup record to update after restore completes.
+        db (AsyncSession): Async database session for updating the Backup record.
+
+    Returns:
+        None.
+
+    Raises:
+        Does not raise; logs all errors and updates the database with failure details.
+    """
     try:
         process = await asyncio.create_subprocess_exec(
             *cmd,

@@ -5,6 +5,15 @@ from typing import Optional, Literal
 
 
 class AdminCreate(BaseModel):
+    """
+    Schema for creating a new admin user.
+
+    Attributes:
+        name (str): Full name of the admin.
+        email (EmailStr): Valid email address (must be unique).
+        phone_number (str): Phone number of the admin.
+        role_name (str): Name of the role to assign to this admin.
+    """
     name: str
     email: EmailStr
     phone_number: str
@@ -15,6 +24,15 @@ class AdminCreate(BaseModel):
 
 
 class AdminUpdate(BaseModel):
+    """
+    Schema for updating existing admin user information.
+
+    Attributes:
+        name (Optional[str]): Updated full name.
+        phone_number (Optional[str]): Updated phone number.
+        email (Optional[EmailStr]): Updated email address.
+        role_name (Optional[str]): Updated role assignment.
+    """
     name: Optional[str] = None
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -22,9 +40,28 @@ class AdminUpdate(BaseModel):
 
 
 class AdminSelfUpdate(BaseModel):
+    """
+    Schema for admins to update their own profile (limited fields).
+
+    Attributes:
+        email (Optional[EmailStr]): Updated email address.
+    """
     email: Optional[EmailStr] = None
 
 class AdminListFilters(BaseModel):
+    """
+    Schema for filtering and paginating admin list queries.
+
+    Attributes:
+        name (Optional[str]): Filter by admin name (partial match).
+        email (Optional[str]): Filter by email address.
+        phone_number (Optional[str]): Filter by phone number.
+        role_name (Optional[str]): Filter by assigned role.
+        skip (int): Number of records to skip (default: 0).
+        limit (int): Maximum records to return (default: 10).
+        sort_by (Optional[str]): Field to sort by (name/email/created_at/updated_at).
+        sort_order (Optional[str]): Sort direction (asc/desc, default: asc).
+    """
     name: Optional[str] = None
     email: Optional[str] = None
     phone_number: Optional[str] = None
@@ -35,6 +72,18 @@ class AdminListFilters(BaseModel):
     sort_order: Optional[Literal["asc", "desc"]] = "asc"
 
 class AdminOut(BaseModel):
+    """
+    Schema for returning admin user information in responses.
+
+    Attributes:
+        admin_id (int): Unique identifier for the admin.
+        name (str): Full name of the admin.
+        email (EmailStr): Email address of the admin.
+        phone_number (str): Phone number of the admin.
+        role_id (Optional[int]): ID of the assigned role.
+        created_at (Optional[datetime]): Timestamp of admin creation.
+        updated_at (Optional[datetime]): Timestamp of last update.
+    """
     admin_id: int
     name: str
     email: EmailStr

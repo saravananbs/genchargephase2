@@ -67,8 +67,16 @@ async def insert_backup_restore_log(
     mongo_db = None  # Will use get_mongo_db() if not provided
 ) -> BackupRestoreLog:
     """
-    Insert a log entry into BackupRestoreLogs collection using Motor.
-    Uses your existing `get_mongo_db()` async context.
+    Insert a backup restore log entry into MongoDB.
+
+    Wraps the internal _insert_log function and manages MongoDB connection context.
+
+    Args:
+        log_data (BackupRestoreLogCreate): Log entry data to insert.
+        mongo_db (optional): MongoDB client instance. If None, gets connection from get_mongo_db().
+
+    Returns:
+        BackupRestoreLog: The inserted log entry with generated ID and timestamp.
     """
     if mongo_db is None:
         async with get_mongo_db() as mongo_db:
@@ -81,6 +89,18 @@ async def _insert_log(
     log_data: BackupRestoreLogCreate,
     mongo_db: AsyncIOMotorClient
 ) -> BackupRestoreLog:
+    """
+    Internal helper to insert a backup restore log into MongoDB.
+
+    Generates a unique log ID and timestamp before insertion.
+
+    Args:
+        log_data (BackupRestoreLogCreate): Log entry data to insert.
+        mongo_db (AsyncIOMotorClient): MongoDB client instance.
+
+    Returns:
+        BackupRestoreLog: The inserted log entry with all fields including generated ID and timestamp.
+    """
     collection = mongo_db["BackupRestoreLogs"]
 
     log_entry = log_data.dict()

@@ -11,15 +11,48 @@ from ..schemas.plan_analytics import (
 TZ = ZoneInfo("Asia/Kolkata")
 
 def now_tz() -> datetime:
+    """
+    Return the current datetime localized to the service timezone.
+
+    Returns:
+        datetime: Timezone-aware datetime in `Asia/Kolkata`.
+    """
     return datetime.now(TZ)
 
 def start_of_day(dt: datetime) -> datetime:
+    """
+    Compute the start of the day (00:00:00) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the start of the same day.
+    """
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 def end_of_day(dt: datetime) -> datetime:
+    """
+    Compute the end of the day (23:59:59.999999) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the end of the same day.
+    """
     return dt.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 def build_periods():
+    """
+    Build a mapping of common period labels to (start, end) datetimes.
+
+    The returned datetimes are timezone-aware in the service timezone and
+    typically exclude the current day (end at the end of the previous day).
+
+    Returns:
+        dict: Mapping from period name to a (start_datetime, end_datetime) tuple.
+    """
     now = now_tz()
     today_start = start_of_day(now)
     return {
@@ -32,6 +65,22 @@ def build_periods():
     }
 
 async def build_plans_report(db: AsyncSession) -> PlansReport:
+    """
+    Build a plans analytics report aggregating totals, counts, trends, distributions and top items.
+
+    This collects period-based counts for plan creation, activation and expiration,
+    calculates trends by day/month, computes growth rates (week/month over week/month),
+    and identifies most popular plans and top creators.
+
+    Args:
+        db (AsyncSession): Database session used to fetch metrics.
+
+    Returns:
+        PlansReport: Pydantic data structure containing comprehensive analytics for plans.
+
+    Raises:
+        Any exceptions raised by the underlying CRUD helpers (propagated).
+    """
     gen_at = now_tz()
 
     total = await crud_plans.total_plans(db)

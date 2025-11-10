@@ -4,10 +4,33 @@ from sqlalchemy.orm import relationship
 import enum
 
 class OfferStatus(enum.Enum):
+    """
+    Enumeration of offer status values.
+
+    Values:
+        active: Offer is currently active and available.
+        inactive: Offer is inactive and not available.
+    """
     active = "active"
     inactive = "inactive"
 
 class Offer(Base):
+    """
+    Promotional offer model representing marketing offers for users.
+
+    Attributes:
+        offer_id (int): Primary key identifier for the offer.
+        offer_name (str): Name/title of the offer.
+        offer_validity (int): Validity period of the offer in days.
+        offer_type_id (int): Foreign key to OfferType.
+        is_special (bool): Flag indicating if this is a special promotional offer.
+        criteria (JSON): JSON criteria/conditions for offer eligibility.
+        description (str): Detailed description of the offer.
+        created_at (TIMESTAMP): Timestamp when offer was created.
+        created_by (int): Admin user ID who created the offer.
+        status (OfferStatus): Offer status (active or inactive).
+        offer_type (OfferType): Relationship to the OfferType object.
+    """
     __tablename__ = "Offers"
 
     offer_id = Column(Integer, primary_key=True)

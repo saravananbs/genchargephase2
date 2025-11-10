@@ -11,6 +11,15 @@ from ..models.users import User
 TZ = ZoneInfo("Asia/Kolkata")
 
 def to_aware(dt: Optional[datetime]) -> Optional[datetime]:
+    """
+    Convert a naive datetime to a timezone-aware datetime in Asia/Kolkata timezone.
+
+    Args:
+        dt (Optional[datetime]): Datetime object to convert.
+
+    Returns:
+        Optional[datetime]: Timezone-aware datetime in TZ, or None if input is None.
+    """
     if dt is None:
         return None
     if dt.tzinfo is None:
@@ -18,6 +27,15 @@ def to_aware(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(TZ)
 
 def make_naive(dt: datetime):
+    """
+    Convert a timezone-aware datetime to UTC-naive datetime.
+
+    Args:
+        dt (datetime): Datetime object to convert.
+
+    Returns:
+        datetime: UTC-naive datetime.
+    """
     if dt.tzinfo:
         return dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
     return dt
@@ -36,6 +54,16 @@ def build_periods():
 
 # ---- User profile ----
 async def get_user_profile(db: AsyncSession, user_id: int) -> Optional[Dict]:
+    """
+    Retrieve user profile information including account age and current status.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to retrieve profile for.
+
+    Returns:
+        Optional[Dict]: User profile dictionary containing user_id, name, email, user_type, status, wallet_balance, created_at, and account_age_days. Returns None if user not found.
+    """
     q = select(User).where(User.user_id == user_id)
     res = await db.execute(q)
     user = res.scalar_one_or_none()
@@ -56,6 +84,16 @@ async def get_user_profile(db: AsyncSession, user_id: int) -> Optional[Dict]:
 
 # ---- Transaction insights ----
 async def transaction_summary(db: AsyncSession, user_id: int) -> Dict:
+    """
+    Generate a comprehensive transaction summary for a user including counts and amounts.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to summarize transactions for.
+
+    Returns:
+        Dict: Summary dictionary containing success count, failed count, pending count, credit/debit counts, total_amount_spent, and total_amount_credited.
+    """
     q = select(
         func.count().label("total"),
         func.sum(case((Transaction.txn_type == "debit", 1), else_=0)).label("debit_count"),
@@ -80,6 +118,16 @@ async def transaction_summary(db: AsyncSession, user_id: int) -> Dict:
 
 # ---- Spending by period ----
 async def spending_by_period(db: AsyncSession, user_id: int) -> List[Dict]:
+    """
+    Calculate user spending metrics across predefined time periods.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to calculate spending for.
+
+    Returns:
+        List[Dict]: List of spending dictionaries for each period containing label, total_spent, and txn_count.
+    """
     periods = build_periods()
     out = []
     for label, (s, e) in periods.items():
@@ -100,6 +148,16 @@ async def spending_by_period(db: AsyncSession, user_id: int) -> List[Dict]:
 
 # ---- Recharge numbers ----
 async def recharge_numbers(db: AsyncSession, user_id: int) -> List[Dict]:
+    """
+    Get list of phone numbers recharged by user with usage counts.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to get recharge phone numbers for.
+
+    Returns:
+        List[Dict]: List of dictionaries containing phone_number and count, ordered by count descending.
+    """
     q = select(Transaction.to_phone_number, func.count()).where(
         Transaction.user_id == user_id,
         Transaction.source == "recharge"
@@ -109,6 +167,16 @@ async def recharge_numbers(db: AsyncSession, user_id: int) -> List[Dict]:
 
 # ---- Top plan ----
 async def most_used_plan(db: AsyncSession, user_id: int) -> Optional[Dict]:
+    """
+    Get the most frequently used plan by a user.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to get most used plan for.
+
+    Returns:
+        Optional[Dict]: Dictionary containing plan_id and usage_count. Returns None if no plans used.
+    """
     q = (
         select(Transaction.plan_id, func.count())
         .where(Transaction.user_id == user_id, Transaction.plan_id.isnot(None))
@@ -124,6 +192,16 @@ async def most_used_plan(db: AsyncSession, user_id: int) -> Optional[Dict]:
 
 # ---- Top offer ----
 async def most_used_offer(db: AsyncSession, user_id: int) -> Optional[Dict]:
+    """
+    Get the most frequently used offer by a user.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to get most used offer for.
+
+    Returns:
+        Optional[Dict]: Dictionary containing offer_id and usage_count. Returns None if no offers used.
+    """
     q = (
         select(Transaction.offer_id, func.count())
         .where(Transaction.user_id == user_id, Transaction.offer_id.isnot(None))
@@ -139,6 +217,16 @@ async def most_used_offer(db: AsyncSession, user_id: int) -> Optional[Dict]:
 
 # ---- Payment methods ----
 async def top_payment_methods(db: AsyncSession, user_id: int) -> List[Dict]:
+    """
+    Get top payment methods used by a user ranked by total amount.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to get top payment methods for.
+
+    Returns:
+        List[Dict]: List of dictionaries containing payment_method and total_amount, ordered by amount descending.
+    """
     q = select(Transaction.payment_method, func.sum(Transaction.amount)).where(
         Transaction.user_id == user_id, Transaction.payment_method.isnot(None)
     ).group_by(Transaction.payment_method).order_by(func.sum(Transaction.amount).desc())
@@ -147,6 +235,16 @@ async def top_payment_methods(db: AsyncSession, user_id: int) -> List[Dict]:
 
 # ---- Top sources ----
 async def top_sources(db: AsyncSession, user_id: int) -> List[Dict]:
+    """
+    Get top transaction sources used by a user ranked by total amount.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to get top sources for.
+
+    Returns:
+        List[Dict]: List of dictionaries containing source and total_amount, ordered by amount descending.
+    """
     q = select(Transaction.source, func.sum(Transaction.amount)).where(
         Transaction.user_id == user_id
     ).group_by(Transaction.source).order_by(func.sum(Transaction.amount).desc())
@@ -155,6 +253,16 @@ async def top_sources(db: AsyncSession, user_id: int) -> List[Dict]:
 
 # ---- Timeline ----
 async def user_transaction_timeline(db: AsyncSession, user_id: int) -> Dict:
+    """
+    Get the first and last transaction timestamps for a user.
+
+    Args:
+        db (AsyncSession): Database session.
+        user_id (int): User ID to get transaction timeline for.
+
+    Returns:
+        Dict: Dictionary containing first and last transaction timestamps.
+    """
     q = select(func.min(Transaction.created_at), func.max(Transaction.created_at)).where(Transaction.user_id == user_id)
     res = await db.execute(q)
     first, last = res.first()

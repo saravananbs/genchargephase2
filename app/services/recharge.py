@@ -45,6 +45,26 @@ from ..crud.referrals import claim_referral_if_eligible
 
 # ---------- Criteria / Reward helpers ----------
 def evaluate_criteria(criteria: Optional[dict], context: dict) -> bool:
+    """
+    Determine whether a given `context` satisfies `criteria` conditions.
+
+    Checks conditions such as valid date range, minimum amount, user type,
+    new user status, applicable sources, and valid plan groups.
+
+    Args:
+        criteria (Optional[dict]): Criteria dictionary that may contain a
+            "conditions" key with validation rules (valid_from, valid_to,
+            min_amount, user_type, is_new_user, applicable_sources, valid_plan_groups).
+        context (dict): Runtime context values (amount, user_type, is_new_user,
+            source, plan_group_name) used to evaluate the criteria.
+
+    Returns:
+        bool: True when the context satisfies the criteria or when no criteria
+            are provided; False otherwise.
+
+    Raises:
+        ValueError: If date parsing fails for provided ISO-formatted dates.
+    """
     if not criteria or "conditions" not in criteria:
         return True
 
@@ -74,6 +94,21 @@ def evaluate_criteria(criteria: Optional[dict], context: dict) -> bool:
 
 
 def calculate_reward(offer_criteria: dict, plan_amount: Decimal) -> Tuple[Decimal, Decimal]:
+    """
+    Calculate discount and cashback amounts from offer criteria for a plan amount.
+
+    Extracts discount and cashback values from offer criteria and applies them,
+    ensuring discount does not exceed the plan amount.
+
+    Args:
+        offer_criteria (dict): Offer criteria that may include a "rewards" mapping
+            with discount_type/discount_value and cashback_type/cashback_value.
+        plan_amount (Decimal): The price of the plan to which rewards apply.
+
+    Returns:
+        Tuple[Decimal, Decimal]: (discount, cashback) both as Decimal values. The
+            discount is capped at the plan_amount.
+    """
     discount = cashback = Decimal("0")
     rewards = offer_criteria.get("rewards", {})
 
@@ -87,6 +122,20 @@ def calculate_reward(offer_criteria: dict, plan_amount: Decimal) -> Tuple[Decima
 
 
 def _decide_plan_status(has_active: bool, force_queue: bool, force_activate: bool) -> CurrentPlanStatus:
+    """
+    Decide the plan activation status given current state and request flags.
+
+    Prioritizes explicit activation/queue requests over automatic status based on
+    existing active plans.
+
+    Args:
+        has_active (bool): Whether the user already has an active plan for the number.
+        force_queue (bool): If True, force the new plan into queue state.
+        force_activate (bool): If True, force immediate activation regardless of has_active.
+
+    Returns:
+        CurrentPlanStatus: Enum indicating whether the plan should be active or queued.
+    """
     if force_queue:
         return CurrentPlanStatus.queued
     if not has_active or force_activate:
@@ -101,6 +150,26 @@ async def subscribe_plan(
     current_user: User,
     mongo_db: AsyncIOMotorDatabase
 ) -> TransactionOut:
+    """
+    Subscribe (purchase) a plan for a target phone number and create transactions.
+
+    This performs validations (plan/offer criteria), handles wallet deductions,
+    activates or queues the plan, creates the main transaction and optional
+    cashback transaction, triggers notifications, and claims referral rewards.
+
+    Args:
+        db (AsyncSession): SQLAlchemy async session for relational DB operations.
+        request (RechargeRequest): Recharge request payload including plan_id,
+            phone_number, offer_id, payment_method and activation_mode.
+        current_user (User): User initiating the recharge (payer).
+        mongo_db (AsyncIOMotorDatabase): MongoDB database handle for notifications.
+
+    Returns:
+        TransactionOut: Pydantic-validated transaction output for the main transaction.
+
+    Raises:
+        ValueError: For invalid plan price, failed criteria, insufficient balance, etc.
+    """
     # Resolve target user
     target_user = await get_user_by_phone(db, request.phone_number)
 
@@ -249,6 +318,22 @@ async def wallet_topup(
     request: WalletTopupRequest,
     current_user: User,
 ) -> TransactionOut:
+    """
+    Top up a user's wallet or another user's wallet and record the transaction.
+
+    Args:
+        db (AsyncSession): SQLAlchemy async session.
+        mongo_db (AsyncIOMotorDatabase): MongoDB handle for notifications.
+        request (WalletTopupRequest): Top-up details including phone_number,
+            amount and payment_method.
+        current_user (User): The user performing the top-up (payer).
+
+    Returns:
+        TransactionOut: Pydantic-validated transaction created for the top-up.
+
+    Raises:
+        ValueError: If payer has insufficient wallet balance when using wallet payment.
+    """
     target_phone = request.phone_number or current_user.phone_number
     target_user = await get_user_by_phone(db, target_phone)
 
@@ -298,6 +383,16 @@ async def get_my_active_plans(
     db: AsyncSession,
     f: CurrentPlanFilterParams,
 ) -> CurrentPlanListResponse:
+    """
+    Retrieve active plans for the current user with pagination metadata.
+
+    Args:
+        db (AsyncSession): Database session.
+        f (CurrentPlanFilterParams): Filtering and pagination parameters.
+
+    Returns:
+        CurrentPlanListResponse: Paginated response with plan DTOs and metadata.
+    """
     plans, total = await list_active_plans(db, f)
     return CurrentPlanListResponse(
         plans=[CurrentActivePlanOut.model_validate(p) for p in plans],
@@ -311,6 +406,16 @@ async def get_my_transactions(
     db: AsyncSession,
     f: TransactionFilterParams,
 ) -> TransactionListResponse:
+    """
+    Retrieve transactions for the current user and return them with pagination.
+
+    Args:
+        db (AsyncSession): Database session.
+        f (TransactionFilterParams): Filtering and pagination parameters.
+
+    Returns:
+        TransactionListResponse: Paginated transactions with user details attached.
+    """
     txns, total = await list_transactions(db, f)
 
     enriched = await _enrich_transactions_with_user(db, txns)
@@ -336,6 +441,16 @@ async def admin_list_active_plans(
     db: AsyncSession,
     f: CurrentPlanFilterParams,
 ) -> CurrentPlanListResponse:
+    """
+    Admin-facing version: list active plans with the same pagination contract.
+
+    Args:
+        db (AsyncSession): Database session.
+        f (CurrentPlanFilterParams): Filter and pagination parameters.
+
+    Returns:
+        CurrentPlanListResponse: Paginated list of active plans.
+    """
     plans, total = await list_active_plans(db, f)
     return CurrentPlanListResponse(
         plans=[CurrentActivePlanOut.model_validate(p) for p in plans],
@@ -350,6 +465,16 @@ async def admin_list_transactions(
     db: AsyncSession,
     f: TransactionFilterParams,
 ) -> TransactionListResponse:
+    """
+    Admin-facing transaction list with pagination and user enrichment.
+
+    Args:
+        db (AsyncSession): Database session.
+        f (TransactionFilterParams): Filtering and pagination parameters.
+
+    Returns:
+        TransactionListResponse: Paginated and enriched transaction list.
+    """
     txns, total = await list_transactions(db, f)
 
     enriched = await _enrich_transactions_with_user(db, txns)
@@ -374,6 +499,20 @@ async def admin_list_transactions(
 async def _enrich_transactions_with_user(
     db: AsyncSession, txns: List[Transaction]
 ) -> List[TransactionOut]:
+    """
+    Attach `User` info to each transaction where applicable.
+
+    Fetches user records for all user_ids referenced in transactions and merges
+    user information into each transaction DTO.
+
+    Args:
+        db (AsyncSession): Database session.
+        txns (List[Transaction]): List of Transaction ORM objects to enrich.
+
+    Returns:
+        List[TransactionOut]: Pydantic-validated transaction objects with a
+            `user` field added when the transaction has a user_id.
+    """
     user_ids = {t.user_id for t in txns if t.user_id}
     if not user_ids:
         return [TransactionOut.model_validate(t) for t in txns]

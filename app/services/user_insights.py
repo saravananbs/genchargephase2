@@ -11,6 +11,23 @@ from ..schemas.user_insights import (
 TZ = ZoneInfo("Asia/Kolkata")
 
 async def build_user_insight_report(db: AsyncSession, user_id: int) -> UserInsightReport:
+    """
+    Build a consolidated user insight report aggregating profile, transactions and usage.
+
+    This function collects profile information, transaction summaries, spending
+    periods, recharge counts, top plan/offer usage and other insights from the
+    CRUD layer, then composes a `UserInsightReport` Pydantic model.
+
+    Args:
+        db (AsyncSession): Async database session used by underlying CRUD helpers.
+        user_id (int): ID of the user to generate the report for.
+
+    Returns:
+        UserInsightReport: Fully populated user insight report model.
+
+    Raises:
+        ValueError: If the requested user does not exist.
+    """
     gen_at = datetime.now(TZ)
 
     profile_data = await crud_user_insights.get_user_profile(db, user_id)

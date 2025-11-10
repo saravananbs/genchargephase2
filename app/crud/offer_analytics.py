@@ -12,7 +12,17 @@ from ..models.offer_types import OfferType
 TZ = ZoneInfo("Asia/Kolkata")
 
 def make_naive(dt: Optional[datetime]) -> Optional[datetime]:
-    """Convert aware datetime -> UTC naive for TIMESTAMP WITHOUT TIME ZONE columns."""
+    """
+    Convert timezone-aware datetime to UTC-naive datetime.
+
+    Handles None values and already-naive datetimes gracefully.
+
+    Args:
+        dt (Optional[datetime]): Datetime object to convert.
+
+    Returns:
+        Optional[datetime]: UTC-naive datetime, or None if input is None.
+    """
     if dt is None:
         return None
     if dt.tzinfo is not None:
@@ -20,11 +30,31 @@ def make_naive(dt: Optional[datetime]) -> Optional[datetime]:
     return dt
 
 async def total_offers(db: AsyncSession) -> int:
+    """
+    Get the total count of all offer records.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        int: Total number of offer records.
+    """
     q = select(func.count()).select_from(Offer)
     res = await db.execute(q)
     return int(res.scalar_one() or 0)
 
 async def count_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count offers created within a date range.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        int: Number of offers created in the date range.
+    """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
     q = select(func.count()).where(and_(Offer.created_at >= start_dt, Offer.created_at <= end_dt))
@@ -32,6 +62,17 @@ async def count_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) 
     return int(res.scalar_one() or 0)
 
 async def count_special_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count special offers created within a date range.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        int: Number of special offers created in the date range.
+    """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
     q = select(func.count()).where(and_(Offer.created_at >= start_dt, Offer.created_at <= end_dt, Offer.is_special == True))
@@ -39,11 +80,29 @@ async def count_special_between(db: AsyncSession, start_dt: datetime, end_dt: da
     return int(res.scalar_one() or 0)
 
 async def distribution_by_status(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of offers grouped by status.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'key' (status) and 'count' fields.
+    """
     q = select(Offer.status, func.count()).group_by(Offer.status)
     res = await db.execute(q)
     return [{"key": (r[0].value if hasattr(r[0], "value") else r[0]), "count": int(r[1])} for r in res.all()]
 
 async def distribution_by_offer_type(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of offers grouped by offer type ID.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'key' (offer type ID) and 'count' fields, ordered by count descending.
+    """
     # join to OfferType to get names if available
     q = (
         select(Offer.offer_type_id, func.count())
@@ -54,6 +113,19 @@ async def distribution_by_offer_type(db: AsyncSession) -> List[Dict]:
     return [{"key": (str(r[0]) if r[0] is not None else "unknown"), "count": int(r[1])} for r in res.all()]
 
 async def trend_by_day(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Get daily trend of offers created within a date range.
+
+    Ensures all days in range are represented, even if they have zero offers.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        List[Dict]: List of dictionaries with 'date' (ISO format) and 'count' fields.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = (
         select(func.date_trunc("day", Offer.created_at).label("day"), func.count().label("cnt"))
@@ -72,6 +144,19 @@ async def trend_by_day(db: AsyncSession, start_dt: datetime, end_dt: datetime) -
     return out
 
 async def trend_by_month(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Get monthly trend of offers created within a date range.
+
+    Ensures all months in range are represented, even if they have zero offers.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        List[Dict]: List of dictionaries with 'month' (ISO format) and 'count' fields.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = (
         select(func.date_trunc("month", Offer.created_at).label("month"), func.count().label("cnt"))
@@ -95,6 +180,15 @@ async def trend_by_month(db: AsyncSession, start_dt: datetime, end_dt: datetime)
     return out
 
 async def avg_validity(db: AsyncSession) -> float:
+    """
+    Get average offer validity duration.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        float: Average offer validity value.
+    """
     # average of Offer.offer_validity (nullable)
     q = select(func.coalesce(func.avg(Offer.offer_validity), 0))
     res = await db.execute(q)
@@ -102,6 +196,16 @@ async def avg_validity(db: AsyncSession) -> float:
     return float(val or 0.0)
 
 async def top_recent_specials(db: AsyncSession, limit: int = 10) -> List[Dict]:
+    """
+    Get the most recently created special offers.
+
+    Args:
+        db (AsyncSession): Async database session.
+        limit (int): Maximum number of records to return (default: 10).
+
+    Returns:
+        List[Dict]: List of special offers ordered by creation date descending.
+    """
     q = (
         select(
             Offer.offer_id,
@@ -133,11 +237,31 @@ async def top_recent_specials(db: AsyncSession, limit: int = 10) -> List[Dict]:
     ]
 
 async def offers_by_creator(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of offers grouped by creator (user ID).
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'created_by' and 'count' fields, ordered by count descending.
+    """
     q = select(Offer.created_by, func.count()).group_by(Offer.created_by).order_by(func.count().desc())
     res = await db.execute(q)
     return [{"created_by": r[0], "count": int(r[1])} for r in res.all()]
 
 async def offers_by_type_detailed(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of offers grouped by offer type ID.
+
+    Returns offer type ID and count of offers for each type, ordered by count descending.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'offer_type_id' and 'count' fields.
+    """
     # tries to get type name if OfferType model available; otherwise returns id
     # If OfferType is available, user should replace this query with a join.
     q = select(Offer.offer_type_id, func.count()).group_by(Offer.offer_type_id).order_by(func.count().desc())

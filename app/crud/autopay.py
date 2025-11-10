@@ -16,6 +16,23 @@ from ..crud.users import get_user_by_phone
 async def create_autopay(
     db: AsyncSession, *, obj_in: AutoPayCreate, user_id: int
 ) -> AutoPay:
+    """
+    Create a new autopay record for a user.
+
+    Validates that the referenced plan and user exist before creating the record.
+    Converts enum values to their string representations and removes timezone info from dates.
+
+    Args:
+        db (AsyncSession): Async database session.
+        obj_in (AutoPayCreate): Autopay creation schema with all required fields.
+        user_id (int): ID of the user creating the autopay.
+
+    Returns:
+        AutoPay: The newly created autopay record.
+
+    Raises:
+        HTTPException: If plan or user referenced in obj_in is not found.
+    """
     data = obj_in.model_dump()
     data["status"] = data["status"].value
     data["tag"] = data["tag"].value
@@ -43,6 +60,17 @@ async def create_autopay(
 
 
 async def get_autopay(db: AsyncSession, *, autopay_id: int, user_id: int) -> AutoPay | None:
+    """
+    Retrieve a specific autopay record by ID and verify it belongs to the user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        autopay_id (int): ID of the autopay record to retrieve.
+        user_id (int): ID of the user who owns the autopay.
+
+    Returns:
+        Optional[AutoPay]: Autopay record if found and owned by user, None otherwise.
+    """
     stmt = select(AutoPay).where(AutoPay.autopay_id == autopay_id, AutoPay.user_id == user_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
@@ -59,6 +87,22 @@ async def get_multi_by_user(
     phone_number: str | None = None,
     sort: Literal["created_at_desc", "created_at_asc", "next_due_date_desc", "next_due_date_asc"] = "created_at_desc",
 ) -> tuple[Sequence[AutoPay], int]:
+    """
+    Retrieve paginated autopay records for a specific user with filtering and sorting.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to retrieve autopays for.
+        page (int): Page number for pagination (default: 1).
+        size (int): Number of records per page (default: 20).
+        status (Optional[AutoPayStatus]): Filter by autopay status.
+        tag (Optional[AutoPayTag]): Filter by autopay tag.
+        phone_number (Optional[str]): Filter by phone number (partial match).
+        sort (str): Sort order option (default: "created_at_desc").
+
+    Returns:
+        tuple: Tuple of (list of AutoPay records, total count).
+    """
     # Base query
     stmt = select(AutoPay).where(AutoPay.user_id == user_id)
 
@@ -100,6 +144,21 @@ async def get_multi_all(
     tag: AutoPayTag | None = None,
     sort: Literal["created_at_desc", "created_at_asc", "next_due_date_desc", "next_due_date_asc"] = "created_at_desc",
 ) -> tuple[Sequence[AutoPay], int]:
+    """
+    Retrieve all paginated autopay records across all users with filtering and sorting.
+
+    Args:
+        db (AsyncSession): Async database session.
+        phone_number (Optional[str]): Filter by phone number (partial match).
+        page (int): Page number for pagination (default: 1).
+        size (int): Number of records per page (default: 20).
+        status (Optional[AutoPayStatus]): Filter by autopay status.
+        tag (Optional[AutoPayTag]): Filter by autopay tag.
+        sort (str): Sort order option (default: "created_at_desc").
+
+    Returns:
+        tuple: Tuple of (list of AutoPay records, total count).
+    """
     stmt = select(AutoPay)
 
     if status:
@@ -129,6 +188,23 @@ async def get_multi_all(
 async def update_autopay(
     db: AsyncSession, *, db_obj: AutoPay, obj_in: AutoPayUpdate
 ) -> AutoPay:
+    """
+    Update an existing autopay record with new values.
+
+    Validates that the referenced plan and user exist before updating.
+    Converts enum values to strings and removes timezone info from dates.
+
+    Args:
+        db (AsyncSession): Async database session.
+        db_obj (AutoPay): The existing autopay record to update.
+        obj_in (AutoPayUpdate): Schema containing fields to update.
+
+    Returns:
+        AutoPay: The updated autopay record.
+
+    Raises:
+        HTTPException: If plan or user referenced in obj_in is not found.
+    """
     update_data = obj_in.model_dump(exclude_unset=True)
     if "status" in update_data:
         update_data["status"] = update_data["status"].value
@@ -160,11 +236,33 @@ async def update_autopay(
 
 
 async def delete_autopay(db: AsyncSession, *, db_obj: AutoPay) -> None:
+    """
+    Delete an autopay record from the database.
+
+    Args:
+        db (AsyncSession): Async database session.
+        db_obj (AutoPay): The autopay record to delete.
+
+    Returns:
+        None
+    """
     await db.delete(db_obj)
     await db.commit()
 
 
 async def get_due_autopays(db: AsyncSession, now: datetime) -> Sequence[AutoPay]:
+    """
+    Retrieve all autopays that are currently due for processing.
+
+    Returns enabled autopays where the next_due_date has passed and tag is regular.
+
+    Args:
+        db (AsyncSession): Async database session.
+        now (datetime): Current timestamp to check against.
+
+    Returns:
+        Sequence[AutoPay]: List of autopays that are due for processing.
+    """
     stmt = select(AutoPay).where(
         AutoPay.status == AutoPayStatus.enabled.value,
         AutoPay.next_due_date <= now,

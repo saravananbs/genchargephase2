@@ -11,11 +11,31 @@ TZ = ZoneInfo("Asia/Kolkata")
 
 # Users crud
 async def crud_total_users(db: AsyncSession) -> int:
+    """
+    Get total count of all users in the system.
+
+    Args:
+        db (AsyncSession): Database session.
+
+    Returns:
+        int: Total number of users.
+    """
     q = select(func.count()).select_from(User)
     res = await db.execute(q)
     return int(res.scalar_one())
 
 async def crud_count_users_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count users created within a date range.
+
+    Args:
+        db (AsyncSession): Database session.
+        start_dt (datetime): Start date (inclusive).
+        end_dt (datetime): End date (inclusive).
+
+    Returns:
+        int: Number of users created in the specified range.
+    """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
     q = select(func.count()).select_from(User).where(
@@ -28,17 +48,44 @@ async def crud_count_users_between(db: AsyncSession, start_dt: datetime, end_dt:
     return int(res.scalar_one())
 
 async def crud_count_users_by_status(db: AsyncSession) -> List[Dict]:
+    """
+    Get count of users grouped by their status.
+
+    Args:
+        db (AsyncSession): Database session.
+
+    Returns:
+        List[Dict]: List of dictionaries containing status and count.
+    """
     q = select(User.status, func.count()).group_by(User.status)
     res = await db.execute(q)
     rows = res.all()
     return [{"status": r[0].value if r[0] else None, "count": int(r[1])} for r in rows]
 
 async def crud_count_users_by_type(db: AsyncSession) -> List[Dict]:
+    """
+    Get count of users grouped by their user type.
+
+    Args:
+        db (AsyncSession): Database session.
+
+    Returns:
+        List[Dict]: List of dictionaries containing type and count.
+    """
     q = select(User.user_type, func.count()).group_by(User.user_type)
     res = await db.execute(q)
     return [{"type": r[0].value if r[0] else None, "count": int(r[1])} for r in res.all()]
 
 async def crud_avg_wallet_balance(db: AsyncSession) -> float:
+    """
+    Calculate the average wallet balance across all users.
+
+    Args:
+        db (AsyncSession): Database session.
+
+    Returns:
+        float: Average wallet balance amount.
+    """
     q = select(func.coalesce(func.avg(User.wallet_balance), 0))
     res = await db.execute(q)
     return float(res.scalar_one() or 0.0)
@@ -47,6 +94,14 @@ async def crud_users_trend_by_day(db: AsyncSession, start_dt: datetime, end_dt: 
     """
     Returns a list of {'date': 'YYYY-MM-DD', 'count': N} for each day in range.
     Uses date_trunc('day', created_at) grouping (Postgres).
+
+    Args:
+        db (AsyncSession): Database session.
+        start_dt (datetime): Start date (inclusive).
+        end_dt (datetime): End date (inclusive).
+
+    Returns:
+        List[Dict]: Daily user creation counts with dates as ISO format strings.
     """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
@@ -72,6 +127,17 @@ async def crud_users_trend_by_day(db: AsyncSession, start_dt: datetime, end_dt: 
     return out
 
 async def crud_users_trend_by_month(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Get user creation trend aggregated by month within date range.
+
+    Args:
+        db (AsyncSession): Database session.
+        start_dt (datetime): Start date (inclusive).
+        end_dt (datetime): End date (inclusive).
+
+    Returns:
+        List[Dict]: Monthly user creation counts with months as ISO format strings.
+    """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
     q = (
@@ -104,6 +170,13 @@ async def crud_top_referrers(db: AsyncSession, limit: int = 10) -> List[Dict]:
     Count how many referred users each user (by referral_code) has produced.
     This assumes ReferralReward or referred users have referee_code linking to referrer's referral_code.
     We'll join Users -> Users (self-join) to count how many users were referred by each referral_code.
+
+    Args:
+        db (AsyncSession): Database session.
+        limit (int): Maximum number of top referrers to return. Defaults to 10.
+
+    Returns:
+        List[Dict]: List of top referrers with referrer_id, referrer_name, and referred_count, ordered by referred_count descending.
     """
     # self-join: count referred rows per referral_code (referral_code in Users refers to referrer)
     referred = User.__table__.alias("referred")
@@ -123,11 +196,31 @@ async def crud_top_referrers(db: AsyncSession, limit: int = 10) -> List[Dict]:
 
 # Admins Crud
 async def total_admins(db: AsyncSession) -> int:
+    """
+    Get total count of all admins in the system.
+
+    Args:
+        db (AsyncSession): Database session.
+
+    Returns:
+        int: Total number of admins.
+    """
     q = select(func.count()).select_from(Admin)
     res = await db.execute(q)
     return int(res.scalar_one() or 0)
 
 async def count_admins_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count admins created within a date range.
+
+    Args:
+        db (AsyncSession): Database session.
+        start_dt (datetime): Start date (inclusive).
+        end_dt (datetime): End date (inclusive).
+
+    Returns:
+        int: Number of admins created in the specified range.
+    """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
     q = select(func.count()).select_from(Admin).where(
@@ -137,11 +230,31 @@ async def count_admins_between(db: AsyncSession, start_dt: datetime, end_dt: dat
     return int(res.scalar_one() or 0)
 
 async def admins_by_role(db: AsyncSession) -> List[Dict]:
+    """
+    Get count of admins grouped by their role.
+
+    Args:
+        db (AsyncSession): Database session.
+
+    Returns:
+        List[Dict]: List of dictionaries containing role_id and count.
+    """
     q = select(Admin.role_id, func.count()).group_by(Admin.role_id)
     res = await db.execute(q)
     return [{"role_id": r[0], "count": int(r[1])} for r in res.all()]
 
 async def admins_trend_by_month(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Get admin creation trend aggregated by month within date range.
+
+    Args:
+        db (AsyncSession): Database session.
+        start_dt (datetime): Start date (inclusive).
+        end_dt (datetime): End date (inclusive).
+
+    Returns:
+        List[Dict]: Monthly admin creation counts with months as ISO format strings.
+    """
     start_dt = make_naive(start_dt)
     end_dt = make_naive(end_dt)
     q = (

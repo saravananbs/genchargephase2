@@ -11,7 +11,17 @@ async def insert_audit_log(
     status: str = "success",
 ):
     """
-    Insert a new audit log entry (no updates or deletes allowed).
+    Insert a new audit log entry into the MongoDB audit collection.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance (dependency-injected).
+        action (str): Short action name (e.g., 'user.create').
+        service (str): Name of service emitting the log.
+        user_id (str): ID of the user who triggered the action.
+        status (str): Outcome status (default: 'success').
+
+    Returns:
+        None
     """
     audit_collection = db["audit_logs"]
     

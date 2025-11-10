@@ -5,21 +5,65 @@ from zoneinfo import ZoneInfo
 TZ = ZoneInfo("Asia/Kolkata")
 
 def now_tz() -> datetime:
+    """
+    Return the current datetime localized to the application's timezone.
+
+    Returns:
+        datetime: Timezone-aware datetime in `Asia/Kolkata`.
+    """
     return datetime.now(TZ)
 
 def start_of_day(dt: datetime) -> datetime:
+    """
+    Compute the start of the day (00:00:00) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the start of the same day.
+    """
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 def end_of_day(dt: datetime) -> datetime:
+    """
+    Compute the end of the day (23:59:59.999999) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the end of the same day.
+    """
     return dt.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 def make_naive(dt: datetime) -> datetime:
-    """Converts aware datetime → UTC naive datetime (for TIMESTAMP WITHOUT TIME ZONE)."""
+    """
+    Convert a timezone-aware datetime to a naive UTC datetime.
+
+    This is useful when persisting values into databases that expect
+    TIMESTAMP WITHOUT TIME ZONE.
+
+    Args:
+        dt (datetime): Input datetime which may be timezone-aware or naive.
+
+    Returns:
+        datetime: Naive UTC datetime if input was aware, otherwise the original dt.
+    """
     if dt.tzinfo is not None:
         return dt.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
     return dt
 
 def period_ranges():
+    """
+    Build a mapping of common period names to (start, end) datetimes.
+
+    Periods returned are timezone-aware in the application's timezone and
+    typically end at the end of the previous day (exclude today).
+
+    Returns:
+        dict: Mapping from period name to a (start_datetime, end_datetime) tuple.
+    """
     now = now_tz()
     today_start = start_of_day(now)
     periods = {}

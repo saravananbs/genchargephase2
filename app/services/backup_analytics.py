@@ -12,15 +12,49 @@ from ..schemas.backup_analytics import (
 TZ = ZoneInfo("Asia/Kolkata")
 
 def now_tz() -> datetime:
+    """
+    Return the current datetime localized to the service timezone.
+
+    Returns:
+        datetime: Timezone-aware datetime in `Asia/Kolkata`.
+    """
     return datetime.now(TZ)
 
 def start_of_day(dt: datetime) -> datetime:
+    """
+    Compute the start of the day (00:00:00) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the start of the same day.
+    """
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 def end_of_day(dt: datetime) -> datetime:
+    """
+    Compute the end of the day (23:59:59.999999) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the end of the same day.
+    """
     return dt.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 def month_delta(dt: datetime, months: int) -> datetime:
+    """
+    Compute a datetime offset by a given number of months.
+
+    Args:
+        dt (datetime): Base datetime.
+        months (int): Number of months to add (positive) or subtract (negative).
+
+    Returns:
+        datetime: Datetime offset by the specified month delta, with tzinfo preserved.
+    """
     # subtract months (months can be positive or negative)
     year = dt.year - (months // 12)
     month = dt.month - (months % 12)
@@ -30,6 +64,15 @@ def month_delta(dt: datetime, months: int) -> datetime:
     return datetime(year, month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, tzinfo=TZ)
 
 def build_periods():
+    """
+    Build a mapping of common period labels to (start, end) datetimes.
+
+    The returned datetimes are timezone-aware in the service timezone and
+    typically exclude the current day (end at the end of the previous day).
+
+    Returns:
+        dict: Mapping from period name to a (start_datetime, end_datetime) tuple.
+    """
     now = now_tz()
     today_start = start_of_day(now)
     periods = {}
@@ -42,6 +85,21 @@ def build_periods():
     return periods
 
 async def build_backups_report(db: AsyncSession) -> BackupsReport:
+    """
+    Build a comprehensive backups analytics report with aggregations and trends.
+
+    This function collects period-based counts and sizes, daily/monthly trends,
+    distributions by status/type, growth rates, top backups, failures, and creator info.
+
+    Args:
+        db (AsyncSession): Database session for fetching backup metrics.
+
+    Returns:
+        BackupsReport: Pydantic data structure containing comprehensive backup analytics.
+
+    Raises:
+        Any exceptions from the underlying CRUD helpers are propagated.
+    """
     gen_at = now_tz()
 
     tot = await crud_backups.total_backups(db)

@@ -54,6 +54,17 @@ class AdminReportFilter:
 
 
 class AdminOut(BaseModel):
+    """Complete admin information for report responses.
+    
+    Attributes:
+        admin_id (int): Unique admin identifier.
+        name (str): Admin's full name.
+        email (str): Admin's email address.
+        phone_number (str): Admin's phone number.
+        role_name (str): Role name assigned to this admin.
+        created_at (datetime): When the admin account was created.
+        updated_at (datetime): When the admin account was last updated.
+    """
     admin_id: int
     name: str
     email: str
@@ -142,6 +153,23 @@ class AutoPayReportFilter:
 
 
 class AutoPayOut(BaseModel):
+    """Complete autopay subscription information for report responses.
+    
+    Attributes:
+        autopay_id (int): Unique autopay subscription ID.
+        user_id (int): ID of the user who owns this autopay.
+        plan_id (int): ID of the plan in autopay.
+        status (str): Status (enabled/disabled).
+        tag (str): Tag type (onetime/regular).
+        phone_number (str): Associated phone number.
+        next_due_date (Optional[datetime]): Next scheduled payment date.
+        created_at (Optional[datetime]): When autopay was created.
+        plan_name (Optional[str]): Denormalized plan name for convenience.
+        plan_price (Optional[int]): Denormalized plan price.
+        plan_type (Optional[str]): Denormalized plan type (prepaid/postpaid).
+        user_name (Optional[str]): Denormalized user name.
+        user_phone (Optional[str]): Denormalized user phone number.
+    """
     autopay_id: int
     user_id: int
     plan_id: int
@@ -234,6 +262,20 @@ class BackupReportFilter:
 
 
 class BackupOut(BaseModel):
+    """Complete backup record information for report responses.
+    
+    Attributes:
+        backup_id (str): Unique backup identifier.
+        backup_data (str): Serialized backup data.
+        snapshot_name (str): Name of the backup snapshot.
+        storage_url (Optional[str]): URL/path where backup is stored.
+        backup_status (str): Status of the backup (success/failed/partial).
+        size_mb (Optional[str]): Size of backup in megabytes.
+        description (Optional[str]): Description of the backup.
+        details (Optional[dict]): Additional backup metadata.
+        created_at (datetime): When backup was created.
+        created_by (Optional[int]): User ID who initiated the backup.
+    """
     backup_id: str
     backup_data: str
     snapshot_name: str
@@ -333,6 +375,22 @@ class CurrentActivePlansFilter:
 
 
 class CurrentActivePlanOut(BaseModel):
+    """Current active plan subscription information for report responses.
+    
+    Attributes:
+        id (int): Unique subscription record ID.
+        user_id (int): ID of the user who owns this plan.
+        plan_id (int): ID of the subscribed plan.
+        phone_number (str): Associated phone number.
+        valid_from (datetime): When the plan becomes active.
+        valid_to (datetime): When the plan expires.
+        status (str): Current subscription status.
+        plan_name (Optional[str]): Denormalized plan name.
+        plan_price (Optional[int]): Denormalized plan price.
+        plan_type (Optional[str]): Denormalized plan type (prepaid/postpaid).
+        user_name (Optional[str]): Denormalized user name.
+        user_phone (Optional[str]): Denormalized user phone number.
+    """
     id: int
     user_id: int
     plan_id: int
@@ -427,6 +485,20 @@ class OfferReportFilter:
 
 
 class OfferOut(BaseModel):
+    """Complete offer information for report responses.
+    
+    Attributes:
+        offer_id (int): Unique offer identifier.
+        offer_name (str): Name of the offer.
+        offer_validity (Optional[int]): Validity period in days.
+        is_special (bool): Whether this is a special/featured offer.
+        criteria (Optional[dict]): Eligibility criteria for the offer.
+        description (Optional[str]): Description of the offer.
+        created_at (Optional[datetime]): When offer was created.
+        created_by (Optional[int]): User ID who created the offer.
+        status (str): Status (active/inactive).
+        offer_type_name (Optional[str]): Denormalized offer type name.
+    """
     offer_id: int
     offer_name: str
     offer_validity: Optional[int]
@@ -471,6 +543,23 @@ class PlanReportFilter:
 
 
 class PlanOut(BaseModel):
+    """Complete plan information for report responses.
+    
+    Attributes:
+        plan_id (int): Unique plan identifier.
+        plan_name (str): Name of the plan.
+        validity (Optional[int]): Validity period in days.
+        most_popular (bool): Whether this is a popular/featured plan.
+        plan_type (str): Type (prepaid/postpaid).
+        group_id (Optional[int]): ID of plan group category.
+        group_name (Optional[str]): Name of plan group.
+        description (Optional[dict]): Description of the plan.
+        criteria (Optional[dict]): Eligibility criteria.
+        created_at (Optional[datetime]): When plan was created.
+        created_by (Optional[int]): User ID who created the plan.
+        price (int): Plan price.
+        status (str): Status (active/inactive).
+    """
     plan_id: int
     plan_name: str
     validity: Optional[int]
@@ -513,6 +602,21 @@ class ReferralReportFilter:
 
 
 class ReferralOut(BaseModel):
+    """Referral reward information for report responses.
+    
+    Attributes:
+        reward_id (int): Unique reward identifier.
+        referrer_id (int): ID of the user who made the referral.
+        referred_id (int): ID of the user who was referred.
+        reward_amount (Decimal): Monetary reward amount.
+        status (str): Status (pending/earned).
+        created_at (datetime): When reward was created.
+        claimed_at (Optional[datetime]): When reward was claimed/earned.
+        referrer_name (Optional[str]): Denormalized referrer user name.
+        referrer_phone (Optional[str]): Denormalized referrer phone number.
+        referred_name (Optional[str]): Denormalized referred user name.
+        referred_phone (Optional[str]): Denormalized referred user phone number.
+    """
     reward_id: int
     referrer_id: int
     referred_id: int
@@ -551,6 +655,19 @@ class RolePermissionReportFilter:
 
 
 class RolePermissionOut(BaseModel):
+    """Role-permission association with denormalized permission details for report responses.
+    
+    Attributes:
+        id (int): Unique role-permission association ID.
+        role_id (int): ID of the role.
+        permission_id (int): ID of the permission.
+        role_name (Optional[str]): Denormalized role name.
+        resource (Optional[str]): Denormalized resource name that permission applies to.
+        read (bool): Whether read access is granted.
+        write (bool): Whether write access is granted.
+        edit (bool): Whether edit access is granted.
+        delete (bool): Whether delete access is granted.
+    """
     id: int
     role_id: int
     permission_id: int
@@ -591,6 +708,19 @@ class SessionsReportFilter:
 
 
 class SessionOut(BaseModel):
+    """User session information for report responses.
+    
+    Attributes:
+        session_id (str): Unique session identifier.
+        user_id (Optional[int]): ID of the user who owns this session.
+        refresh_token (str): Refresh token for session renewal.
+        jti (str): JWT Token ID (unique token identifier).
+        refresh_token_expires_at (Optional[datetime]): When refresh token expires.
+        login_time (Optional[datetime]): When user logged in.
+        last_active (Optional[datetime]): Last activity timestamp.
+        is_active (bool): Whether session is currently active.
+        revoked_at (Optional[datetime]): When session was revoked.
+    """
     session_id: str
     user_id: Optional[int]
     refresh_token: str
@@ -633,6 +763,25 @@ class TransactionsReportFilter:
 
 
 class TransactionOut(BaseModel):
+    """Complete transaction record for report responses.
+    
+    Attributes:
+        txn_id (int): Unique transaction identifier.
+        user_id (Optional[int]): ID of the user who initiated the transaction.
+        category (str): Transaction category (wallet/service/etc).
+        txn_type (str): Type of transaction (credit/debit).
+        amount (Decimal): Transaction amount.
+        service_type (Optional[str]): Service type (prepaid/postpaid).
+        plan_id (Optional[int]): ID of plan if plan-related transaction.
+        offer_id (Optional[int]): ID of offer if offer-related transaction.
+        from_phone_number (Optional[str]): Source phone number.
+        to_phone_number (Optional[str]): Destination phone number.
+        source (str): Transaction source (recharge/wallet_topup/refund/referral_reward/autopay).
+        status (str): Status (success/failed/pending).
+        payment_method (Optional[str]): Payment method used (UPI/Card/NetBanking/Wallet).
+        payment_transaction_id (Optional[str]): External payment gateway transaction ID.
+        created_at (datetime): When transaction was created.
+    """
     txn_id: int
     user_id: Optional[int]
     category: str

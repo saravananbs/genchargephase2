@@ -13,6 +13,21 @@ from ..schemas.users_admins_analytics import UsersReport, TrendPoint, Distributi
 
 # Users service
 async def build_users_report(db: AsyncSession) -> UsersReport:
+    """
+    Build a comprehensive users analytics report including totals, distributions, trends and growth.
+
+    This function aggregates user counts by status and type, calculates weekly/monthly trends,
+    computes growth rates comparing periods, and identifies top referrers.
+
+    Args:
+        db (AsyncSession): Database session for fetching user metrics.
+
+    Returns:
+        UsersReport: Pydantic data structure containing all user analytics data.
+
+    Raises:
+        Any exceptions from the underlying CRUD helpers are propagated.
+    """
     gen_at = now_tz()
 
     # totals
@@ -121,6 +136,21 @@ async def build_users_report(db: AsyncSession) -> UsersReport:
 
 # Admin service
 async def build_admins_report(db: AsyncSession) -> AdminsReport:
+    """
+    Build an admins analytics report including role distribution, trends, and growth metrics.
+
+    This function collects admin counts per role, calculates monthly trends for 6 and 12 month
+    periods, and computes month-over-month growth rates.
+
+    Args:
+        db (AsyncSession): Database session for fetching admin metrics.
+
+    Returns:
+        AdminsReport: Pydantic data structure containing comprehensive admin analytics.
+
+    Raises:
+        Any exceptions from the underlying CRUD helpers are propagated.
+    """
     gen_at = now_tz()
     totals = {}
     tot_admins = await total_admins(db)

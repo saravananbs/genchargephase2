@@ -22,7 +22,25 @@ async def create_custom_notification(
     scheduled_at: Optional[datetime] = None,
     sender_type: str = "system"
 ) -> dict:
-    """Utility function to create any notification"""
+    """
+    Create a custom notification or announcement record in MongoDB.
+
+    This is a thin wrapper over `NotificationCRUD.create_notification` that
+    standardizes the call signature used across services.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance.
+        description (str): Notification message/body.
+        recipient_type (str): Recipient type (e.g., "user", "admin", "all").
+        recipient_id (Optional[int]): Optional recipient identifier.
+        notif_type (str): Notification channel/type (default: "message").
+        attachments (Optional[Dict[str, Any]]): Optional attachments metadata.
+        scheduled_at (Optional[datetime]): Optional scheduled send time.
+        sender_type (str): Who sent the notification (default: "system").
+
+    Returns:
+        dict: Created notification document (raw MongoDB dict) as returned by CRUD.
+    """
     return await NotificationCRUD.create_notification(
         db=db,
         sender_type=sender_type,
@@ -38,7 +56,18 @@ async def service_create_announcement(
     db: AsyncIOMotorDatabase,
     payload: AnnouncementCreate,
     current_user: Admin
-) -> dict:    
+) -> dict:
+    """
+    Create an announcement notification targeted at a recipient group.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance.
+        payload (AnnouncementCreate): Announcement payload including recipient_type and content.
+        current_user (Admin): Admin creating the announcement.
+
+    Returns:
+        dict: Created announcement document as returned by the CRUD layer.
+    """
     notif_dict = await NotificationCRUD.create_announcement(
         db=db,
         recipient_type=payload.recipient_type,
@@ -52,6 +81,16 @@ async def service_get_my_notifications(
     current_user: User | Admin,
     db: AsyncIOMotorDatabase,
 ):
+    """
+    Fetch notifications relevant to the currently authenticated user or admin.
+
+    Args:
+        current_user (User | Admin): Authenticated principal (user or admin).
+        db (AsyncIOMotorDatabase): Motor async database instance.
+
+    Returns:
+        List[NotificationResponse]: List of notification response DTOs for the principal.
+    """
     if isinstance(current_user, User):
         notifications = await NotificationCRUD.get_user_notifications(
             db=db,
@@ -70,7 +109,21 @@ async def service_delete_notification(
     db: AsyncIOMotorDatabase,
     payload: NotificationDelete,
     current_user: User | Admin,
-):  
+):
+    """
+    Delete a notification if it belongs to the current principal or the admin has access.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance.
+        payload (NotificationDelete): Payload containing the notification id to delete.
+        current_user (User | Admin): Authenticated principal requesting deletion.
+
+    Returns:
+        dict: Simple status dict indicating deletion.
+
+    Raises:
+        HTTPException: 404 if the notification is not found or access is denied.
+    """
     if isinstance(current_user, User):
         success = await NotificationCRUD.delete_notification(
             db=db,

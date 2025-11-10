@@ -5,6 +5,19 @@ from ..core.database import Base
 from sqlalchemy.sql import func
 
 class Admin(Base):
+    """
+    Admin user account model representing administrative staff.
+
+    Attributes:
+        admin_id (int): Primary key identifier for the admin.
+        name (str): Full name of the admin.
+        email (str): Unique email address for the admin.
+        phone_number (str): Unique phone number for the admin.
+        created_at (TIMESTAMP): Timestamp of admin record creation.
+        updated_at (TIMESTAMP): Timestamp of last admin record update.
+        role_id (int): Foreign key reference to the Role table.
+        role (Role): Relationship to the associated Role object.
+    """
     __tablename__ = "Admins"
 
     admin_id = Column(Integer, primary_key=True)

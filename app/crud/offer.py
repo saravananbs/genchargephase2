@@ -12,6 +12,20 @@ from ..schemas.offer import OfferCreate, OfferUpdate, OfferFilter
 
 # CREATE
 async def create_offer(db: AsyncSession, payload: OfferCreate, created_by: int):
+    """
+    Create a new offer and return the persisted record.
+
+    Args:
+        db (AsyncSession): Async database session.
+        payload (OfferCreate): Pydantic schema with offer creation data.
+        created_by (int): User ID who created the offer.
+
+    Returns:
+        Offer: The created Offer instance with related `offer_type` loaded.
+
+    Raises:
+        HTTPException: On integrity errors (e.g., invalid foreign keys).
+    """
     offer = Offer(**payload.model_dump(), created_by=created_by)
     db.add(offer)
     try:
@@ -38,6 +52,16 @@ async def create_offer(db: AsyncSession, payload: OfferCreate, created_by: int):
     
 # GET by id
 async def get_offer_by_id(db: AsyncSession, offer_id: int) -> Optional[Offer]:
+    """
+    Fetch an offer by its ID, including the related offer type.
+
+    Args:
+        db (AsyncSession): Async database session.
+        offer_id (int): Primary key of the offer to fetch.
+
+    Returns:
+        Optional[Offer]: Offer instance if found, otherwise None.
+    """
     result = await db.execute(
         select(Offer)
         .options(selectinload(Offer.offer_type))
@@ -47,6 +71,16 @@ async def get_offer_by_id(db: AsyncSession, offer_id: int) -> Optional[Offer]:
 
 # LIST (with filters/pagination/order) for admin
 async def list_offers(db: AsyncSession, filters: OfferFilter) -> List[Offer]:
+    """
+    List offers for admin consumption applying filters, sorting and pagination.
+
+    Args:
+        db (AsyncSession): Async database session.
+        filters (OfferFilter): Filtering, sorting and pagination parameters.
+
+    Returns:
+        List[Offer]: List of Offer ORM instances matching the filters.
+    """
     q = select(Offer).options(selectinload(Offer.offer_type))
 
     if filters.search:
@@ -76,6 +110,16 @@ async def list_offers(db: AsyncSession, filters: OfferFilter) -> List[Offer]:
 
 # LIST public (active offers only) - similar but restricts fields later in response
 async def list_public_offers(db: AsyncSession, filters: OfferFilter) -> List[Offer]:
+    """
+    List publicly visible offers (active) with filters and pagination.
+
+    Args:
+        db (AsyncSession): Async database session.
+        filters (OfferFilter): Filtering, sorting and pagination parameters.
+
+    Returns:
+        List[Offer]: List of active Offer ORM instances.
+    """
     q = select(Offer).options(selectinload(Offer.offer_type)).where(Offer.status == "active")
 
     if filters.search:
@@ -99,6 +143,20 @@ async def list_public_offers(db: AsyncSession, filters: OfferFilter) -> List[Off
 
 # UPDATE
 async def update_offer(db: AsyncSession, offer_id: int, payload: OfferUpdate):
+    """
+    Update an existing offer with provided fields.
+
+    Args:
+        db (AsyncSession): Async database session.
+        offer_id (int): ID of the offer to update.
+        payload (OfferUpdate): Pydantic schema with updated values.
+
+    Returns:
+        Offer: The updated Offer instance.
+
+    Raises:
+        HTTPException: If offer not found or integrity errors occur.
+    """
     offer = await get_offer_by_id(db, offer_id)
     if not offer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found")
@@ -120,6 +178,16 @@ async def update_offer(db: AsyncSession, offer_id: int, payload: OfferUpdate):
 
 # DELETE
 async def delete_offer(db: AsyncSession, offer_id: int):
+    """
+    Delete an offer by ID.
+
+    Args:
+        db (AsyncSession): Async database session.
+        offer_id (int): ID of the offer to delete.
+
+    Raises:
+        HTTPException: If offer not found or deletion violates integrity constraints.
+    """
     offer = await get_offer_by_id(db, offer_id)
     if not offer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found")

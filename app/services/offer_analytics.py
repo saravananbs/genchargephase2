@@ -11,15 +11,48 @@ from ..schemas.offer_analytics import (
 TZ = ZoneInfo("Asia/Kolkata")
 
 def now_tz() -> datetime:
+    """
+    Return the current datetime localized to the service timezone.
+
+    Returns:
+        datetime: Timezone-aware datetime in `Asia/Kolkata`.
+    """
     return datetime.now(TZ)
 
 def start_of_day(dt: datetime) -> datetime:
+    """
+    Compute the start of the day (00:00:00) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the start of the same day.
+    """
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 def end_of_day(dt: datetime) -> datetime:
+    """
+    Compute the end of the day (23:59:59.999999) for a given datetime.
+
+    Args:
+        dt (datetime): A timezone-aware or naive datetime.
+
+    Returns:
+        datetime: Datetime set to the end of the same day.
+    """
     return dt.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 def build_periods():
+    """
+    Build a mapping of common period labels to (start, end) datetimes.
+
+    The returned datetimes are timezone-aware in the service timezone and
+    typically exclude the current day (end at the end of the previous day).
+
+    Returns:
+        dict: Mapping from period name to a (start_datetime, end_datetime) tuple.
+    """
     now = now_tz()
     today_start = start_of_day(now)
     return {
@@ -32,6 +65,18 @@ def build_periods():
     }
 
 async def build_offers_report(db: AsyncSession) -> OffersReport:
+    """
+    Build a comprehensive offers analytics report aggregating counts, trends, distributions and growth metrics.
+
+    Args:
+        db (AsyncSession): Database session used to fetch aggregate metrics.
+
+    Returns:
+        OffersReport: Pydantic data structure containing analytics for offers.
+
+    Raises:
+        Any exceptions raised by the underlying CRUD helper functions (propagated).
+    """
     gen_at = now_tz()
 
     total = await crud_offers.total_offers(db)

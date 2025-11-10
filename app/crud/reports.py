@@ -32,7 +32,16 @@ from sqlalchemy import select, and_, or_, asc, desc, join, cast, Float
 async def get_admin_report(
     session: AsyncSession, filters: AdminReportFilter
 ) -> List[Admin]:
+    """
+    Retrieve a list of admin users matching the provided filters.
 
+    Args:
+        session (AsyncSession): Async database session.
+        filters (AdminReportFilter): Filtering, ordering and pagination parameters.
+
+    Returns:
+        List[Admin]: Matching Admin ORM objects with related Role loaded.
+    """
     query = select(Admin).options(joinedload(Admin.role))
 
     conditions = []
@@ -163,6 +172,16 @@ async def get_autopays(
 
 
 async def get_backups(session: AsyncSession, filters: BackupReportFilter) -> List[Backup]:
+    """
+    List backup records matching filter criteria.
+
+    Args:
+        session (AsyncSession): Async database session.
+        filters (BackupReportFilter): Filtering, ordering and pagination params.
+
+    Returns:
+        List[Backup]: Matching Backup ORM objects.
+    """
     query = select(Backup)
     conditions = []
 
@@ -873,6 +892,16 @@ async def get_users(
     session: AsyncSession,
     filters: UsersReportFilter
 ) -> List[User]:
+    """
+    List users matching report filters; supports many filters and optional pagination.
+
+    Args:
+        session (AsyncSession): Async database session.
+        filters (UsersReportFilter): Filtering, ordering and pagination parameters.
+
+    Returns:
+        List[User]: Matching User ORM objects.
+    """
     stmt = select(User)
     conditions = []
 

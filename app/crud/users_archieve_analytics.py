@@ -10,7 +10,16 @@ from ..models.users_archieve import UserArchieve
 TZ = ZoneInfo("Asia/Kolkata")
 
 def make_naive(dt: Optional[datetime]) -> Optional[datetime]:
-    """Convert aware datetime -> UTC naive for TIMESTAMP WITHOUT TIME ZONE columns."""
+    """
+    Convert an aware datetime to a UTC-naive datetime suitable for storage in
+    TIMESTAMP WITHOUT TIME ZONE columns.
+
+    Args:
+        dt (Optional[datetime]): Datetime to normalize.
+
+    Returns:
+        Optional[datetime]: Naive UTC datetime or None if input is None.
+    """
     if dt is None:
         return None
     if dt.tzinfo is not None:
@@ -19,22 +28,60 @@ def make_naive(dt: Optional[datetime]) -> Optional[datetime]:
 
 # totals
 async def total_archived_users(db: AsyncSession) -> int:
+    """
+    Return the total number of archived users.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        int: Total archived user count.
+    """
     q = select(func.count()).select_from(UserArchieve)
     res = await db.execute(q)
     return int(res.scalar_one() or 0)
 
 async def distribution_by_user_type(db: AsyncSession) -> List[Dict]:
+    """
+    Distribution of archived users grouped by user_type.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of {"key": user_type, "count": int}.
+    """
     q = select(UserArchieve.user_type, func.count()).group_by(UserArchieve.user_type)
     res = await db.execute(q)
     return [{"key": (r[0].value if hasattr(r[0], "value") else r[0]), "count": int(r[1])} for r in res.all()]
 
 async def distribution_by_status(db: AsyncSession) -> List[Dict]:
+    """
+    Distribution of archived users grouped by status.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of {"key": status, "count": int}.
+    """
     q = select(UserArchieve.status, func.count()).group_by(UserArchieve.status)
     res = await db.execute(q)
     return [{"key": (r[0].value if hasattr(r[0], "value") else r[0]), "count": int(r[1])} for r in res.all()]
 
 # period counts (deleted_at)
 async def count_deleted_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count archived users deleted between two datetimes.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start datetime (inclusive).
+        end_dt (datetime): End datetime (inclusive).
+
+    Returns:
+        int: Number of deleted users in the interval.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = select(func.count()).where(and_(UserArchieve.deleted_at >= start_dt, UserArchieve.deleted_at <= end_dt))
     res = await db.execute(q)
@@ -42,6 +89,17 @@ async def count_deleted_between(db: AsyncSession, start_dt: datetime, end_dt: da
 
 # trends by day (deleted_at)
 async def deletion_trend_by_day(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Produce a day-by-day trend of deletions in the archive between two dates.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start datetime (inclusive).
+        end_dt (datetime): End datetime (inclusive).
+
+    Returns:
+        List[Dict]: Daily points {"date": ISO-date, "count": int}.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = (
         select(func.date_trunc("day", UserArchieve.deleted_at).label("day"), func.count().label("cnt"))
@@ -61,6 +119,17 @@ async def deletion_trend_by_day(db: AsyncSession, start_dt: datetime, end_dt: da
 
 # trends by month (deleted_at)
 async def deletion_trend_by_month(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Produce a month-by-month trend of deletions in the archive between two dates.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start datetime (inclusive).
+        end_dt (datetime): End datetime (inclusive).
+
+    Returns:
+        List[Dict]: Monthly points {"month": ISO-month, "count": int}.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = (
         select(func.date_trunc("month", UserArchieve.deleted_at).label("month"), func.count().label("cnt"))
@@ -74,6 +143,15 @@ async def deletion_trend_by_month(db: AsyncSession, start_dt: datetime, end_dt: 
 
 # avg / total wallet_balance
 async def total_wallet_in_archive(db: AsyncSession) -> float:
+    """
+    Sum wallet balances for all archived users.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        float: Total wallet balance across archived users.
+    """
     # wallet_balance is Numeric -> cast to Numeric and sum -> float
     q = select(func.coalesce(func.sum(cast(UserArchieve.wallet_balance, Numeric)), 0))
     res = await db.execute(q)
@@ -81,6 +159,15 @@ async def total_wallet_in_archive(db: AsyncSession) -> float:
     return float(val or 0.0)
 
 async def avg_wallet_balance(db: AsyncSession) -> float:
+    """
+    Compute the average wallet balance among archived users.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        float: Average wallet balance (0.0 if none).
+    """
     q = select(func.coalesce(func.avg(cast(UserArchieve.wallet_balance, Numeric)), 0))
     res = await db.execute(q)
     val = res.scalar_one()
@@ -88,6 +175,16 @@ async def avg_wallet_balance(db: AsyncSession) -> float:
 
 # top archived by wallet
 async def top_by_wallet(db: AsyncSession, limit: int = 10) -> List[Dict]:
+    """
+    Return archived users ordered by wallet balance (descending).
+
+    Args:
+        db (AsyncSession): Async database session.
+        limit (int): Maximum number of entries to return.
+
+    Returns:
+        List[Dict]: List of user dictionaries with wallet and metadata.
+    """
     q = (
         select(
             UserArchieve.user_id,
@@ -125,6 +222,16 @@ async def top_by_wallet(db: AsyncSession, limit: int = 10) -> List[Dict]:
 
 # recent deletions (by deleted_at desc)
 async def recent_deleted(db: AsyncSession, limit: int = 20) -> List[Dict]:
+    """
+    Return recently deleted (archived) users ordered by deletion time.
+
+    Args:
+        db (AsyncSession): Async database session.
+        limit (int): Maximum number of entries to return.
+
+    Returns:
+        List[Dict]: List of user dictionaries with deletion metadata.
+    """
     q = (
         select(
             UserArchieve.user_id,
@@ -162,6 +269,16 @@ async def recent_deleted(db: AsyncSession, limit: int = 20) -> List[Dict]:
 
 # phone duplicates
 async def phone_number_duplicates(db: AsyncSession, min_count: int = 2) -> List[Dict]:
+    """
+    Find phone numbers that appear in the archive at least `min_count` times.
+
+    Args:
+        db (AsyncSession): Async database session.
+        min_count (int): Minimum number of occurrences to include.
+
+    Returns:
+        List[Dict]: List of {"phone_number": str, "count": int}.
+    """
     q = select(UserArchieve.phone_number, func.count()).group_by(UserArchieve.phone_number).having(func.count() >= min_count).order_by(func.count().desc())
     res = await db.execute(q)
     return [{"phone_number": r[0], "count": int(r[1])} for r in res.all()]

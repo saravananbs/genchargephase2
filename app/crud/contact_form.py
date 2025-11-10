@@ -9,6 +9,16 @@ from fastapi import HTTPException
 COLLECTION_NAME = "contact_forms"
 
 async def create_contact(db: AsyncIOMotorDatabase, form: ContactFormCreate) -> ContactFormResponse:
+    """
+    Create a new contact form submission in MongoDB.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance.
+        form (ContactFormCreate): Contact form data to create.
+
+    Returns:
+        ContactFormResponse: The created contact form with generated ID and timestamp.
+    """
     doc = form.model_dump()
     doc["created_at"] = datetime.now()
     doc["resolved"] = False
@@ -23,6 +33,19 @@ async def get_contacts(
     end_date: Optional[datetime] = None,
     order: str = "desc"
 ) -> List[ContactFormResponse]:
+    """
+    Retrieve contact form submissions with optional filtering and sorting.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance.
+        email (Optional[str]): Filter by email address.
+        start_date (Optional[datetime]): Filter by start date (inclusive).
+        end_date (Optional[datetime]): Filter by end date (inclusive).
+        order (str): Sort order, "desc" for descending or "asc" for ascending (default: "desc").
+
+    Returns:
+        List[ContactFormResponse]: List of contact form submissions matching criteria.
+    """
     query = {}
     if email:
         query["email"] = email
@@ -41,9 +64,23 @@ async def get_contacts(
 
 async def update_resolved(
     db: AsyncIOMotorDatabase,
-    contact_id: ObjectId,        # <-- ObjectId instance
+    contact_id: ObjectId,       
     resolved: bool
 ) -> Optional[ContactFormResponse]:
+    """
+    Update the resolved status of a contact form submission.
+
+    Args:
+        db (AsyncIOMotorDatabase): Motor async database instance.
+        contact_id (ObjectId): MongoDB ObjectId of the contact form.
+        resolved (bool): New resolved status.
+
+    Returns:
+        Optional[ContactFormResponse]: Updated contact form, or None if update failed.
+
+    Raises:
+        HTTPException: If the contact form was not found or could not be updated.
+    """
     result = await db[COLLECTION_NAME].update_one(
         {"_id": contact_id},
         {"$set": {"resolved": resolved}}

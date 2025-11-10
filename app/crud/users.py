@@ -26,6 +26,20 @@ async def generate_unique_referral_code(db: AsyncSession, length: int = 8) -> st
 
 
 async def create_user(db: AsyncSession, user: UserCreatenew):
+    """
+    Create a new user record in the database.
+
+    This generates a unique referral code, constructs a User model from the
+    provided schema, commits it to the database and returns the persisted
+    User instance.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user (UserCreatenew): Pydantic schema containing user creation data.
+
+    Returns:
+        User: The newly created and refreshed User ORM instance.
+    """
     referal_code = await generate_unique_referral_code(db)
     db_user = User(
         name=user.name,
@@ -45,21 +59,62 @@ async def create_user(db: AsyncSession, user: UserCreatenew):
 
 
 async def get_user_by_email(db: AsyncSession, email: str):
+    """
+    Retrieve a user by their email address.
+
+    Args:
+        db (AsyncSession): Async database session.
+        email (str): Email address to search for.
+
+    Returns:
+        Optional[User]: User instance if found, otherwise None.
+    """
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
 
 
 async def get_user_by_phone(db: AsyncSession, phone: str):
+    """
+    Retrieve a user by phone number.
+
+    Args:
+        db (AsyncSession): Async database session.
+        phone (str): Phone number string.
+
+    Returns:
+        Optional[User]: User instance if found, otherwise None.
+    """
     result = await db.execute(select(User).where(User.phone_number == phone))
     return result.scalar_one_or_none()
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int):
+    """
+    Retrieve a user by their numeric ID.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): Primary key of the user.
+
+    Returns:
+        Optional[User]: User instance if found, otherwise None.
+    """
     result = await db.execute(select(User).where(User.user_id == user_id))
     return result.scalar_one_or_none()
 
 
 async def update_user_status(db: AsyncSession, user_id: int, status: str):
+    """
+    Update the status field of a user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to update.
+        status (str): New status value.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+    """
     result = await db.execute(select(User).where(User.user_id == user_id))
     user = result.scalar_one_or_none()
     if user:
@@ -71,6 +126,18 @@ async def update_user_status(db: AsyncSession, user_id: int, status: str):
 
 
 async def get_users(db: AsyncSession, filters: UserListFilters) -> Sequence[User]:
+    """
+    Retrieve a paginated list of users using the provided filters.
+
+    Supports filtering by name, status, user_type and sorting.
+
+    Args:
+        db (AsyncSession): Async database session.
+        filters (UserListFilters): Filter and pagination options.
+
+    Returns:
+        Sequence[User]: List of User ORM instances matching the filters.
+    """
     stmt = select(User)
     if filters.name:
         stmt = stmt.where(User.name.ilike(f"%{filters.name}%"))
@@ -91,6 +158,20 @@ async def get_users(db: AsyncSession, filters: UserListFilters) -> Sequence[User
 
 
 async def delete_user(db: AsyncSession, user_id: int) -> Optional[UserArchieve]:
+    """
+    Archive and delete a user record.
+
+    Creates a UserArchieve record from the existing User, deletes the
+    original User row and returns the archive entry. If the user does not
+    exist, returns None.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to delete.
+
+    Returns:
+        Optional[UserArchieve]: The archived user record, or None if not found.
+    """
     user_result = await db.execute(select(User).where(User.user_id == user_id))
     user: Optional[User] = user_result.scalar_one_or_none()
     if not user:
@@ -123,6 +204,16 @@ async def delete_user(db: AsyncSession, user_id: int) -> Optional[UserArchieve]:
 async def get_archived_users(
     db: AsyncSession, filters: UserListFilters
 ) -> Sequence[UserArchieve]:
+    """
+    List archived users with the same filtering and pagination semantics as `get_users`.
+
+    Args:
+        db (AsyncSession): Async database session.
+        filters (UserListFilters): Filter and pagination options.
+
+    Returns:
+        Sequence[UserArchieve]: List of archived user records.
+    """
     stmt = select(UserArchieve)
 
     if filters.name:
@@ -144,6 +235,21 @@ async def get_archived_users(
 
 
 async def block_user(db: AsyncSession, user_id: int) -> Optional[User]:
+    """
+    Block a user by setting their status to `blocked`.
+
+    Validates current state and raises an HTTPException for invalid transitions.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to block.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+
+    Raises:
+        HTTPException: If the user is already blocked or not active.
+    """
     user = await get_user_by_id(db, user_id)
     if not user:
         return None
@@ -165,6 +271,19 @@ async def block_user(db: AsyncSession, user_id: int) -> Optional[User]:
 
 
 async def unblock_user(db: AsyncSession, user_id: int) -> Optional[User]:
+    """
+    Unblock a user by setting their status to `active`.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to unblock.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+
+    Raises:
+        HTTPException: If the user is already active or not active (invalid transition).
+    """
     user = await get_user_by_id(db, user_id)
     if not user:
         return None
@@ -189,6 +308,17 @@ async def unblock_user(db: AsyncSession, user_id: int) -> Optional[User]:
 async def update_email(
     db: AsyncSession, user_id: int, new_email: str
 ) -> Optional[User]:
+    """
+    Update a user's email address.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to update.
+        new_email (str): New email address.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+    """
     user = await get_user_by_id(db, user_id)
     if not user:
         return None
@@ -203,6 +333,17 @@ async def update_email(
 async def switch_user_type(
     db: AsyncSession, user_id: int, user_type: UserType
 ) -> Optional[User]:
+    """
+    Change the user's type (e.g., prepaid/postpaid).
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to update.
+        user_type (UserType): New user type enum value.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+    """
     user = await get_user_by_id(db, user_id)
     if not user:
         return None
@@ -215,6 +356,19 @@ async def switch_user_type(
 
 
 async def deactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
+    """
+    Deactivate a user (set status to `deactive`).
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to deactivate.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+
+    Raises:
+        HTTPException: If the user is blocked or already deactivated.
+    """
     user = await get_user_by_id(db, user_id)
     if not user:
         return None
@@ -236,6 +390,19 @@ async def deactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
 
 
 async def reactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
+    """
+    Reactivate a user (set status to `active`).
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to reactivate.
+
+    Returns:
+        Optional[User]: Updated User instance, or None if user not found.
+
+    Raises:
+        HTTPException: If the user is already active or is blocked.
+    """
     user = await get_user_by_id(db, user_id)
     if not user:
         return None
@@ -258,6 +425,16 @@ async def reactivate_user(db: AsyncSession, user_id: int) -> Optional[User]:
 
 
 async def delete_user_account(db: AsyncSession, user_id: int) -> Optional[UserArchieve]:
+    """
+    Convenience wrapper to archive and delete a user account.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user to delete.
+
+    Returns:
+        Optional[UserArchieve]: The archived user record, or None if not found.
+    """
     return await delete_user(db, user_id)
 
 
@@ -268,6 +445,25 @@ async def register_user(
     email: str,
     referee_code: Optional[str] = None,
 ) -> User:
+    """
+    Complete the registration process for a partially created user.
+
+    This updates the provided `current_user` with name/email and optionally
+    creates a `ReferralReward` if a valid referee code is supplied.
+
+    Args:
+        db (AsyncSession): Async database session.
+        current_user (User): Existing user instance to update.
+        name (str): Name to set.
+        email (str): Email to set.
+        referee_code (Optional[str]): Optional referral code of the referrer.
+
+    Returns:
+        User: The updated user instance.
+
+    Raises:
+        HTTPException: For invalid referee codes or if the user is already registered.
+    """
     # --- Step 1: Check if user is already registered ---
     stmt = select(User).where(
         User.user_id == current_user.user_id,
@@ -332,11 +528,32 @@ async def register_user(
 
 
 async def get_user_preference(db: AsyncSession, user_id: int):
+    """
+    Fetch the UserPreference record for a given user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user whose preferences to fetch.
+
+    Returns:
+        Optional[UserPreference]: The preference record, or None if not set.
+    """
     result = await db.execute(select(UserPreference).where(UserPreference.user_id == user_id))
     return result.scalars().first()
 
 
 async def create_user_preference(db: AsyncSession, user_id: int, data: UserPreferenceUpdate):
+    """
+    Create a UserPreference record for the given user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): User ID to associate the preference with.
+        data (UserPreferenceUpdate): Preference data schema.
+
+    Returns:
+        UserPreference: Persisted preference ORM instance.
+    """
     preference = UserPreference(user_id=user_id, **data)
     db.add(preference)
     await db.commit()
@@ -345,6 +562,19 @@ async def create_user_preference(db: AsyncSession, user_id: int, data: UserPrefe
 
 
 async def update_user_preference(db: AsyncSession, user_id: int, data: UserPreferenceUpdate):
+    """
+    Update (or create) a user's preferences.
+
+    If preferences do not exist for the user, a new record will be created.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): User to update preferences for.
+        data (UserPreferenceUpdate): Preference values to set.
+
+    Returns:
+        UserPreference: The upserted preference record.
+    """
     preference = await get_user_preference(db, user_id)
     if not preference:
         return await create_user_preference(db, user_id, data)

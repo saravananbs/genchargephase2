@@ -10,10 +10,30 @@ from typing import Sequence
 from datetime import datetime
 
 async def get_admin_by_phone(db: AsyncSession, phone: str):
+    """
+    Retrieve an admin by phone number.
+
+    Args:
+        db (AsyncSession): Async database session.
+        phone (str): Phone number to search for.
+
+    Returns:
+        Optional[Admin]: Admin instance if found, otherwise None.
+    """
     result = await db.execute(select(Admin).where(Admin.phone_number == phone))
     return result.scalars().first()
 
 async def get_admin_role_by_phone(db: AsyncSession, phone: str):
+    """
+    Retrieve an admin's role information by phone number.
+
+    Args:
+        db (AsyncSession): Async database session.
+        phone (str): Phone number of the admin.
+
+    Returns:
+        Optional[Role]: Role instance if admin exists and has a role, otherwise None.
+    """
     result = await db.execute(
         select(Admin)
         .options(selectinload(Admin.role))  
@@ -25,6 +45,16 @@ async def get_admin_role_by_phone(db: AsyncSession, phone: str):
     return None
 
 async def get_admins(db: AsyncSession, filters: AdminListFilters) -> Sequence[Admin]:
+    """
+    List admins with filtering, sorting and pagination.
+
+    Args:
+        db (AsyncSession): Async database session.
+        filters (AdminListFilters): Filtering, sorting and pagination options.
+
+    Returns:
+        Sequence[Admin]: List of Admin instances matching the filters.
+    """
     stmt = select(Admin).options(selectinload(Admin.role))
     if filters.name:
         stmt = stmt.where(Admin.name.ilike(f"%{filters.name}%"))
@@ -45,10 +75,37 @@ async def get_admins(db: AsyncSession, filters: AdminListFilters) -> Sequence[Ad
     return result.scalars().all()
 
 async def get_admin_by_id(db: AsyncSession, admin_id: int):
+    """
+    Retrieve an admin by their primary key.
+
+    Args:
+        db (AsyncSession): Async database session.
+        admin_id (int): ID of the admin to retrieve.
+
+    Returns:
+        Optional[Admin]: Admin instance if found, otherwise None.
+    """
     result = await db.execute(select(Admin).where(Admin.admin_id == admin_id))
     return result.scalar_one_or_none()
 
 async def create_admin(db: AsyncSession, admin_data: AdminCreate):
+    """
+    Create a new admin record.
+
+    Validates that the phone number is not already in use and resolves role_name
+    to a role_id before persisting.
+
+    Args:
+        db (AsyncSession): Async database session.
+        admin_data (AdminCreate): Pydantic schema with admin creation data.
+
+    Returns:
+        Admin: The newly created Admin instance.
+
+    Raises:
+        HTTPException: 400 if phone number already exists or role not found;
+            404 if specified role does not exist.
+    """
     try:
         result = await db.execute(
             select(Admin).where((Admin.phone_number == admin_data.phone_number))

@@ -22,6 +22,22 @@ async def get_user_referral_rewards(
         "reward_amount_desc", "reward_amount_asc"
     ] = "created_at_desc",
 ) -> tuple[Sequence[ReferralReward], int]:
+    """
+    Return referral rewards for a given user (either as referrer or referred).
+
+    Supports paging and optional filtering by status and sorting.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): User ID to lookup rewards for.
+        page (int): Page number (1-based).
+        size (int): Page size.
+        status (Optional[ReferralRewardStatus]): Optional status filter.
+        sort (str): Sort key from the allowed set.
+
+    Returns:
+        tuple[Sequence[ReferralReward], int]: (list of rewards, total count).
+    """
     stmt = select(ReferralReward).where(
         (ReferralReward.referrer_id == user_id) |
         (ReferralReward.referred_id == user_id)
@@ -58,6 +74,19 @@ async def get_all_referral_rewards(
         "reward_amount_desc", "reward_amount_asc"
     ] = "created_at_desc",
 ) -> tuple[Sequence[ReferralReward], int]:
+    """
+    Return all referral rewards (admin view) with optional paging, status filter and sorting.
+
+    Args:
+        db (AsyncSession): Async database session.
+        page (int): Page number (1-based).
+        size (int): Page size.
+        status (Optional[ReferralRewardStatus]): Optional status filter.
+        sort (str): Sort key from the allowed set.
+
+    Returns:
+        tuple[Sequence[ReferralReward], int]: (list of rewards, total count).
+    """
     stmt = select(ReferralReward)
 
     if status:
@@ -87,12 +116,24 @@ async def claim_referral_if_eligible(
     reward_amount: Optional[float] = None,
 ) -> ReferralReward | None:
     """
-    Claim referral reward if:
-    - No reward exists OR only 'pending' exists
-    - Both users are active
-    - Referred user has referee_code set
+    Attempt to claim a referral reward when eligibility conditions are met.
 
-    Returns ReferralReward if created, else None.
+    Conditions (evaluated in order):
+      - Both users must be active.
+      - The referred user's referee_code must match the referrer's referral_code.
+      - No previously earned reward exists for this pair.
+
+    If eligible, marks the reward as earned, credits the referrer's wallet and returns
+    the updated ReferralReward. If not eligible, returns None.
+
+    Args:
+        db (AsyncSession): Async database session.
+        referrer (User): Referrer user instance.
+        referred (User): Referred user instance.
+        reward_amount (Optional[float]): Reward amount to apply (defaults to 50).
+
+    Returns:
+        Optional[ReferralReward]: Updated reward if claimed, otherwise None.
     """
     if reward_amount is None:
         reward_amount = 50  # e.g. 50.00

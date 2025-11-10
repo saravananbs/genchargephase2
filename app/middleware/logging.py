@@ -18,9 +18,25 @@ if not logger.handlers:
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    """
+    Request/response logging middleware for HTTP traffic monitoring.
+
+    Logs incoming requests and outgoing responses with duration metrics.
+    Captures method, URL, status code, and response time for debugging and monitoring.
+    """
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        """
+        Intercept and log HTTP request/response transaction.
+
+        Args:
+            request (Request): Incoming HTTP request.
+            call_next (RequestResponseEndpoint): Callable to process request.
+
+        Returns:
+            Response: HTTP response with duration logged.
+        """
         start_time = time.time()
 
         # Log incoming request
@@ -41,5 +57,15 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
 
 def add_logging_middleware(app: FastAPI) -> None:
-    """Attach the custom LoggingMiddleware."""
+    """
+    Attach custom logging middleware to FastAPI application.
+
+    Enables request/response logging for API traffic monitoring.
+
+    Args:
+        app (FastAPI): FastAPI application instance.
+
+    Returns:
+        None
+    """
     app.add_middleware(LoggingMiddleware)

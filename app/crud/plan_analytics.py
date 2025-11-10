@@ -13,7 +13,17 @@ from ..models.current_active_plans import CurrentActivePlan
 TZ = ZoneInfo("Asia/Kolkata")
 
 def make_naive(dt: Optional[datetime]) -> Optional[datetime]:
-    """If dt is tz-aware, convert to UTC then drop tzinfo (for TIMESTAMP WITHOUT TIME ZONE)."""
+    """
+    Convert timezone-aware datetime to UTC-naive datetime.
+
+    Handles None values and already-naive datetimes gracefully.
+
+    Args:
+        dt (Optional[datetime]): Datetime object to convert.
+
+    Returns:
+        Optional[datetime]: UTC-naive datetime, or None if input is None.
+    """
     if dt is None:
         return None
     if dt.tzinfo is not None:
@@ -22,11 +32,31 @@ def make_naive(dt: Optional[datetime]) -> Optional[datetime]:
 
 # Total counts
 async def total_plans(db: AsyncSession) -> int:
+    """
+    Get the total count of all plan records.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        int: Total number of plan records.
+    """
     q = select(func.count()).select_from(Plan)
     res = await db.execute(q)
     return int(res.scalar_one() or 0)
 
 async def count_plans_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count plans created within a date range.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        int: Number of plans created in the date range.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = select(func.count()).where(and_(Plan.created_at >= start_dt, Plan.created_at <= end_dt))
     res = await db.execute(q)
@@ -34,6 +64,17 @@ async def count_plans_between(db: AsyncSession, start_dt: datetime, end_dt: date
 
 # Activation / expiration counts from CurrentActivePlan
 async def count_activations_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count plan activations within a date range.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        int: Number of plans activated within the date range.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = select(func.count()).select_from(CurrentActivePlan).where(
         and_(CurrentActivePlan.valid_from >= start_dt, CurrentActivePlan.valid_from <= end_dt)
@@ -42,6 +83,17 @@ async def count_activations_between(db: AsyncSession, start_dt: datetime, end_dt
     return int(res.scalar_one() or 0)
 
 async def count_expirations_between(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> int:
+    """
+    Count plan expirations within a date range.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        int: Number of plans expiring within the date range.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = select(func.count()).select_from(CurrentActivePlan).where(
         and_(CurrentActivePlan.valid_to >= start_dt, CurrentActivePlan.valid_to <= end_dt)
@@ -51,6 +103,19 @@ async def count_expirations_between(db: AsyncSession, start_dt: datetime, end_dt
 
 # trends by day/month
 async def trend_plans_by_day(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Get daily trend of plans created within a date range.
+
+    Ensures all days in range are represented, even if they have zero plans.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        List[Dict]: List of dictionaries with 'date' (ISO format) and 'count' fields.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = (
         select(func.date_trunc("day", Plan.created_at).label("day"), func.count().label("cnt"))
@@ -69,6 +134,19 @@ async def trend_plans_by_day(db: AsyncSession, start_dt: datetime, end_dt: datet
     return out
 
 async def trend_plans_by_month(db: AsyncSession, start_dt: datetime, end_dt: datetime) -> List[Dict]:
+    """
+    Get monthly trend of plans created within a date range.
+
+    Ensures all months in range are represented, even if they have zero plans.
+
+    Args:
+        db (AsyncSession): Async database session.
+        start_dt (datetime): Start of the date range (inclusive).
+        end_dt (datetime): End of the date range (inclusive).
+
+    Returns:
+        List[Dict]: List of dictionaries with 'month' (ISO format) and 'count' fields.
+    """
     start_dt = make_naive(start_dt); end_dt = make_naive(end_dt)
     q = (
         select(func.date_trunc("month", Plan.created_at).label("month"), func.count().label("cnt"))
@@ -93,28 +171,73 @@ async def trend_plans_by_month(db: AsyncSession, start_dt: datetime, end_dt: dat
 
 # distributions
 async def distribution_by_plan_type(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of plans grouped by plan type.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'key' (plan type) and 'count' fields.
+    """
     q = select(Plan.plan_type, func.count()).group_by(Plan.plan_type)
     res = await db.execute(q)
     return [{"key": (r[0].value if hasattr(r[0], "value") else r[0]), "count": int(r[1])} for r in res.all()]
 
 async def distribution_by_status(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of plans grouped by status.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'key' (status) and 'count' fields.
+    """
     q = select(Plan.status, func.count()).group_by(Plan.status)
     res = await db.execute(q)
     return [{"key": (r[0].value if hasattr(r[0], "value") else r[0]), "count": int(r[1])} for r in res.all()]
 
 async def distribution_by_group(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of plans grouped by plan group ID.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'key' (group ID) and 'count' fields, ordered by count descending.
+    """
     q = select(Plan.group_id, func.count()).group_by(Plan.group_id).order_by(func.count().desc())
     res = await db.execute(q)
     return [{"key": (int(r[0]) if r[0] is not None else None), "count": int(r[1])} for r in res.all()]
 
 # averages
 async def avg_price(db: AsyncSession) -> float:
+    """
+    Get average plan price.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        float: Average price across all plans.
+    """
     q = select(func.coalesce(func.avg(Plan.price), 0))
     res = await db.execute(q)
     val = res.scalar_one()
     return float(val or 0.0)
 
 async def avg_validity(db: AsyncSession) -> float:
+    """
+    Get average plan validity duration.
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        float: Average validity across all plans.
+    """
     q = select(func.coalesce(func.avg(Plan.validity), 0))
     res = await db.execute(q)
     val = res.scalar_one()
@@ -122,6 +245,16 @@ async def avg_validity(db: AsyncSession) -> float:
 
 # Most popular plans
 async def most_popular_plans(db: AsyncSession, limit: int = 10) -> List[Dict]:
+    """
+    Get the most popular plans marked with most_popular flag.
+
+    Args:
+        db (AsyncSession): Async database session.
+        limit (int): Maximum number of plans to return (default: 10).
+
+    Returns:
+        List[Dict]: List of most popular plans ordered by creation date descending.
+    """
     q = (
         select(
             Plan.plan_id,
@@ -158,6 +291,16 @@ async def most_popular_plans(db: AsyncSession, limit: int = 10) -> List[Dict]:
 
 # Top plans by current active count (join CurrentActivePlan)
 async def top_plans_by_active_count(db: AsyncSession, limit: int = 10) -> List[Dict]:
+    """
+    Get top plans ordered by number of currently active plan instances.
+
+    Args:
+        db (AsyncSession): Async database session.
+        limit (int): Maximum number of plans to return (default: 10).
+
+    Returns:
+        List[Dict]: List of plans with 'plan_id', 'plan_name', and 'active_count' fields, ordered by count descending.
+    """
     # join Plans -> CurrentActivePlans on plan_id
     plan_tbl = Plan.__table__.alias("p")
     active_tbl = CurrentActivePlan.__table__.alias("a")
@@ -173,6 +316,15 @@ async def top_plans_by_active_count(db: AsyncSession, limit: int = 10) -> List[D
 
 # plans by creator
 async def plans_by_creator(db: AsyncSession) -> List[Dict]:
+    """
+    Get distribution of plans grouped by creator (user ID).
+
+    Args:
+        db (AsyncSession): Async database session.
+
+    Returns:
+        List[Dict]: List of dictionaries with 'created_by' and 'count' fields, ordered by count descending.
+    """
     q = select(Plan.created_by, func.count()).group_by(Plan.created_by).order_by(func.count().desc())
     res = await db.execute(q)
     return [{"created_by": r[0], "count": int(r[1])} for r in res.all()]

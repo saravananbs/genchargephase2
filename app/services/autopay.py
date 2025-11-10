@@ -30,6 +30,20 @@ from ..services.recharge import subscribe_plan, RechargeRequest, TransactionSour
 async def create_user_autopay(
     db: AsyncSession, *, obj_in: AutoPayCreate, current_user_id: int
 ) -> AutoPayOut:
+    """
+    Create an autopay configuration for the current user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        obj_in (AutoPayCreate): Autopay configuration data.
+        current_user_id (int): ID of the user creating the autopay.
+
+    Returns:
+        AutoPayOut: Validated autopay DTO.
+
+    Raises:
+        Any exceptions from the underlying CRUD layer are propagated.
+    """
     autopay = await create_autopay(db, obj_in=obj_in, user_id=current_user_id)
     return AutoPayOut.model_validate(autopay)
 
@@ -37,6 +51,20 @@ async def create_user_autopay(
 async def get_user_autopay(
     db: AsyncSession, *, autopay_id: int, current_user_id: int
 ) -> AutoPayOut:
+    """
+    Retrieve a single autopay configuration for the current user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        autopay_id (int): ID of the autopay to retrieve.
+        current_user_id (int): ID of the current user (for authorization).
+
+    Returns:
+        AutoPayOut: Validated autopay DTO.
+
+    Raises:
+        HTTPException: 404 if the autopay is not found or the user is not authorized.
+    """
     autopay = await get_autopay(db, autopay_id=autopay_id, user_id=current_user_id)
     if not autopay:
         raise HTTPException(
@@ -58,6 +86,22 @@ async def list_user_autopays(
     sort: str = "created_at_desc",
     phone_number: str | None = None
 ) -> PaginatedAutoPay:
+    """
+    List autopay configurations for the current user with pagination and filtering.
+
+    Args:
+        db (AsyncSession): Async database session.
+        current_user_id (int): ID of the current user.
+        page (int): Page number for pagination (default: 1).
+        size (int): Page size (default: 20).
+        status (AutoPayStatus | None): Optional status filter.
+        tag (AutoPayTag | None): Optional tag filter (e.g., regular, one-time).
+        sort (str): Sort key (default: "created_at_desc").
+        phone_number (str | None): Optional phone number filter.
+
+    Returns:
+        PaginatedAutoPay: Paginated list of autopay DTOs with metadata.
+    """
     rows, total = await get_multi_by_user(
         db,
         user_id=current_user_id,
@@ -80,6 +124,21 @@ async def list_user_autopays(
 async def update_user_autopay(
     db: AsyncSession, *, autopay_id: int, obj_in: AutoPayUpdate, current_user_id: int
 ) -> AutoPayOut:
+    """
+    Update an autopay configuration for the current user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        autopay_id (int): ID of the autopay to update.
+        obj_in (AutoPayUpdate): Updated autopay data.
+        current_user_id (int): ID of the current user (for authorization).
+
+    Returns:
+        AutoPayOut: Updated autopay DTO.
+
+    Raises:
+        HTTPException: 404 if the autopay is not found or the user is not authorized.
+    """
     autopay = await get_autopay(db, autopay_id=autopay_id, user_id=current_user_id)
     if not autopay:
         raise HTTPException(
@@ -94,6 +153,20 @@ async def update_user_autopay(
 async def delete_user_autopay(
     db: AsyncSession, *, autopay_id: int, current_user_id: int
 ) -> None:
+    """
+    Delete an autopay configuration for the current user.
+
+    Args:
+        db (AsyncSession): Async database session.
+        autopay_id (int): ID of the autopay to delete.
+        current_user_id (int): ID of the current user (for authorization).
+
+    Returns:
+        None.
+
+    Raises:
+        HTTPException: 404 if the autopay is not found or the user is not authorized.
+    """
     autopay = await get_autopay(db, autopay_id=autopay_id, user_id=current_user_id)
     if not autopay:
         raise HTTPException(
@@ -115,6 +188,21 @@ async def list_all_autopays(
     tag: AutoPayTag | None = None,
     sort: str = "created_at_desc",
 ) -> PaginatedAutoPay:
+    """
+    List all autopay configurations (admin view) with pagination and filtering.
+
+    Args:
+        db (AsyncSession): Async database session.
+        page (int): Page number (default: 1).
+        size (int): Page size (default: 20).
+        phone_number (str | None): Optional phone number filter.
+        status (AutoPayStatus | None): Optional status filter.
+        tag (AutoPayTag | None): Optional tag filter.
+        sort (str): Sort key (default: "created_at_desc").
+
+    Returns:
+        PaginatedAutoPay: Paginated list of all autopays with metadata.
+    """
     rows, total = await get_multi_all(
         db, page=page, size=size, status=status, tag=tag, sort=sort, phone_number=phone_number
     )
@@ -128,6 +216,19 @@ async def list_all_autopays(
 
 
 async def process_due_autopays(db: AsyncSession, now: datetime | None = None) -> list[dict]:
+    """
+    Process autopays that are due and attempt to subscribe plans, update next due dates.
+
+    Retrieves all autopays with due dates <= now, attempts subscription via recharge service,
+    and updates regular autopays' next_due_date based on plan validity.
+
+    Args:
+        db (AsyncSession): Async database session.
+        now (datetime | None): Current datetime for comparison (default: datetime.now()).
+
+    Returns:
+        list[dict]: List of result dicts with autopay_id, status (success/failed), tx_id or error.
+    """
     if now is None:
         now = datetime.now()
 

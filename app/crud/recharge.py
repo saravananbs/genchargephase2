@@ -15,6 +15,19 @@ from ..models.current_active_plans import CurrentActivePlan, CurrentPlanStatus
 
 # ---------- Helpers ----------
 async def get_user_by_phone(db: AsyncSession, phone: str) -> User:
+    """
+    Fetch a User by phone number.
+
+    Args:
+        db (AsyncSession): Async database session.
+        phone (str): Phone number to search for.
+
+    Returns:
+        User: The matching User instance.
+
+    Raises:
+        ValueError: If no user with the given phone number exists.
+    """
     result = await db.execute(select(User).where(User.phone_number == phone))
     user = result.scalars().first()
     if not user:
@@ -23,6 +36,17 @@ async def get_user_by_phone(db: AsyncSession, phone: str) -> User:
 
 
 async def count_active_plans(db: AsyncSession, user_id: int, phone: str) -> int:
+    """
+    Count the number of active plans for a given user and phone number.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user.
+        phone (str): Phone number associated with the plans.
+
+    Returns:
+        int: Number of active plans.
+    """
     result = await db.execute(
         select(func.count()).where(
             CurrentActivePlan.user_id == user_id,
@@ -34,6 +58,19 @@ async def count_active_plans(db: AsyncSession, user_id: int, phone: str) -> int:
 
 
 async def activate_queued_plan(db: AsyncSession, user_id: int, phone_number: str) -> None:
+    """
+    Expire outdated active plans and activate the earliest queued plan for a user/phone.
+
+    This will update plan statuses and commit the transaction.
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): ID of the user.
+        phone_number (str): Phone number associated with the plans.
+
+    Returns:
+        None
+    """
     now = datetime.utcnow()
 
     # Expire old active plans
@@ -69,6 +106,19 @@ async def activate_queued_plan(db: AsyncSession, user_id: int, phone_number: str
 
 # ---------- Plan ----------
 async def get_plan_by_id(db: AsyncSession, plan_id: int) -> Plan:
+    """
+    Retrieve an active Plan by ID, raising on not found or inactive.
+
+    Args:
+        db (AsyncSession): Async database session.
+        plan_id (int): Primary key of the plan.
+
+    Returns:
+        Plan: The active Plan instance.
+
+    Raises:
+        ValueError: If plan not found or inactive.
+    """
     result = await db.execute(
         select(Plan)
         .options(selectinload(Plan.group))
@@ -82,6 +132,19 @@ async def get_plan_by_id(db: AsyncSession, plan_id: int) -> Plan:
 
 # ---------- Offer ----------
 async def get_offer_by_id(db: AsyncSession, offer_id: int) -> Offer:
+    """
+    Retrieve an active Offer by ID, raising if not found or inactive.
+
+    Args:
+        db (AsyncSession): Async database session.
+        offer_id (int): Primary key of the offer.
+
+    Returns:
+        Offer: The Offer instance.
+
+    Raises:
+        ValueError: If offer not found or inactive.
+    """
     result = await db.execute(
         select(Offer)
         .options(selectinload(Offer.offer_type))
@@ -103,6 +166,21 @@ async def create_active_plan(
     valid_to: datetime,
     status: CurrentPlanStatus,
 ) -> CurrentActivePlan:
+    """
+    Create a CurrentActivePlan instance (not yet committed).
+
+    Args:
+        db (AsyncSession): Async database session.
+        user_id (int): User who owns the plan.
+        plan_id (int): Plan identifier.
+        phone_number (str): Phone number associated with the plan.
+        valid_from (datetime): Plan start datetime.
+        valid_to (datetime): Plan end datetime.
+        status (CurrentPlanStatus): Initial plan status.
+
+    Returns:
+        CurrentActivePlan: The new in-session CurrentActivePlan instance.
+    """
     plan = CurrentActivePlan(
         user_id=user_id,
         plan_id=plan_id,
@@ -121,6 +199,16 @@ async def list_active_plans(
     f: CurrentPlanFilterParams,
 ) -> Tuple[List[CurrentActivePlan], int]:
 
+    """
+    List active/current plans with flexible filtering, sorting and pagination.
+
+    Args:
+        db (AsyncSession): Async database session.
+        f (CurrentPlanFilterParams): Filtering, sorting and pagination parameters.
+
+    Returns:
+        Tuple[List[CurrentActivePlan], int]: (list of plans, total count).
+    """
     stmt = (
         select(CurrentActivePlan)
         .options(
@@ -191,6 +279,16 @@ async def create_transaction(
     db: AsyncSession,
     **kwargs,
 ) -> Transaction:
+    """
+    Create a Transaction ORM instance and add it to the current session.
+
+    Args:
+        db (AsyncSession): Async database session.
+        **kwargs: Fields for the Transaction model.
+
+    Returns:
+        Transaction: The newly created Transaction instance (not committed).
+    """
     txn = Transaction(**kwargs)
     db.add(txn)
     await db.flush()
@@ -202,6 +300,16 @@ async def list_transactions(
     f: TransactionFilterParams,
 ) -> Tuple[List[Transaction], int]:
 
+    """
+    List transactions applying provided filters, sorting and pagination.
+
+    Args:
+        db (AsyncSession): Async database session.
+        f (TransactionFilterParams): Filtering, sorting and pagination params.
+
+    Returns:
+        Tuple[List[Transaction], int]: (list of transactions, total count).
+    """
     stmt = select(Transaction)
 
     # ------------------- FILTERS -------------------

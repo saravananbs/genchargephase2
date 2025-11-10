@@ -12,6 +12,19 @@ from ..schemas.role import RoleListFilters
 from typing import Optional, List, Sequence
 
 async def get_all_roles(db: AsyncSession, filters: RoleListFilters) -> Sequence[Role]:
+    """
+    List all roles with optional filtering, sorting and pagination.
+
+    Supports filtering by role_name and permission_resource, with eager loading
+    of role permissions and their associated permissions.
+
+    Args:
+        db (AsyncSession): Async database session.
+        filters (RoleListFilters): Filtering, sorting and pagination parameters.
+
+    Returns:
+        Sequence[Role]: List of Role instances with permissions eagerly loaded.
+    """
     stmt = (
         select(Role)
         .options(
@@ -37,6 +50,16 @@ async def get_all_roles(db: AsyncSession, filters: RoleListFilters) -> Sequence[
     return roles
 
 async def get_role_by_id(db: AsyncSession, role_id: int):
+    """
+    Retrieve a role by ID with its permissions eagerly loaded.
+
+    Args:
+        db (AsyncSession): Async database session.
+        role_id (int): Primary key of the role to retrieve.
+
+    Returns:
+        Optional[Role]: Role instance with permissions loaded if found, otherwise None.
+    """
     result = await db.execute(
         select(Role)
         .options(
@@ -48,6 +71,21 @@ async def get_role_by_id(db: AsyncSession, role_id: int):
     return role
 
 async def create_role(db: AsyncSession, role_name: str, permission_ids: list[int]):
+    """
+    Create a new role and assign permissions to it.
+
+    Args:
+        db (AsyncSession): Async database session.
+        role_name (str): Name of the new role.
+        permission_ids (list[int]): List of permission IDs to assign to the role.
+
+    Returns:
+        Role: The newly created Role instance with permissions loaded.
+
+    Raises:
+        HTTPException: 400 if role name already exists or any permission ID is invalid;
+            500 for unexpected database errors.
+    """
     try:
         new_role = Role(role_name=role_name)
         db.add(new_role)

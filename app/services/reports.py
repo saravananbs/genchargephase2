@@ -17,6 +17,18 @@ from fpdf import FPDF
 
 
 async def generate_admin_report(session: AsyncSession, filters: AdminReportFilter):
+    """
+    Generate an admin list report according to provided filters and export type.
+
+    Args:
+        session (AsyncSession): Database session used to fetch data.
+        filters (AdminReportFilter): Filtering and export parameters.
+
+    Returns:
+        list|tuple: If `filters.export_type == "none"` returns a list of dicts.
+            Otherwise returns a tuple (buffer, content_type, filename) for the
+            requested export format (csv, excel, pdf).
+    """
     admins = await get_admin_report(session, filters)
     data = [
         {
@@ -67,7 +79,19 @@ async def generate_admin_report(session: AsyncSession, filters: AdminReportFilte
 
 
 def _row_from_autopay(a) -> dict:
-    """Convert ORM autopay row to plain dict for output/export."""
+    """
+    Convert an AutoPay ORM instance to a plain dict for JSON/export.
+
+    Extracts relevant fields from the ORM object and associated relationships
+    (plan, user) to construct a flat, serializable dictionary.
+
+    Args:
+        a: ORM AutoPay object.
+
+    Returns:
+        dict: Flattened representation with autopay_id, status, tag, plan details,
+            user details, suitable for serialization or DataFrame operations.
+    """
     return {
         "autopay_id": a.autopay_id,
         "user_id": a.user_id,
@@ -92,6 +116,17 @@ async def generate_autopay_report(
     Returns:
       - if export_type == "none": list[dict] (plain data)
       - else: (buffer, content_type, filename)
+    """
+    """
+    Generate AutoPay report data or an exported file depending on filters.
+
+    Args:
+        session (AsyncSession): DB session to fetch autopay records.
+        filters (AutoPayReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON serializable list when export_type is "none"; otherwise
+            (buffer, content_type, filename) for the requested export.
     """
     autopays = await get_autopays(session, filters)
     rows = [_row_from_autopay(a) for a in autopays]
@@ -159,6 +194,16 @@ async def generate_autopay_report(
 
 
 async def generate_backup_report(session: AsyncSession, filters: BackupReportFilter) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate a Backup report or exported file according to filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (BackupReportFilter): Filtering and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     backups = await get_backups(session, filters)
 
     rows = [
@@ -221,7 +266,18 @@ async def generate_backup_report(session: AsyncSession, filters: BackupReportFil
 
 
 def _row_from_curr_active_plan(a) -> dict:
-    """Flatten ORM object to dict suitable for JSON/export."""
+    """
+    Flatten a CurrentActivePlan ORM object to a dict for serialization/export.
+
+    Extracts plan and user information and merges it into a single flat row.
+
+    Args:
+        a: ORM CurrentActivePlan instance.
+
+    Returns:
+        dict: Flattened row with id, user_id, plan_id, phone_number, validity dates,
+            status, and nested plan/user details (name, price, type, phone).
+    """
     return {
         "id": a.id,
         "user_id": a.user_id,
@@ -241,6 +297,16 @@ async def generate_current_active_plans_report(
     session: AsyncSession,
     filters: CurrentActivePlansFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate current active plans report or exported file per filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (CurrentActivePlansFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     objs = await get_current_active_plans(session, filters)
     rows = [_row_from_curr_active_plan(a) for a in objs]
 
@@ -301,6 +367,18 @@ async def generate_current_active_plans_report(
 
 
 def _row_from_offer(o) -> dict:
+    """
+    Convert an Offer ORM instance into a flattened dict suitable for export.
+
+    Includes offer details, status, criteria, and associated offer type information.
+
+    Args:
+        o: ORM Offer instance.
+
+    Returns:
+        dict: Flattened offer data with offer_id, name, validity, status, type details,
+            creation info, and criteria.
+    """
     # o is an ORM Offer
     return {
         "offer_id": o.offer_id,
@@ -320,6 +398,16 @@ async def generate_offers_report(
     session: AsyncSession,
     filters: OfferReportFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate offers report data or exported file according to filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (OfferReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     offers = await get_offers(session, filters)
     rows = [_row_from_offer(o) for o in offers]
 
@@ -386,6 +474,18 @@ async def generate_offers_report(
 
 
 def _row_from_plan(p) -> dict:
+    """
+    Flatten a Plan ORM object to a dict for JSON/export.
+
+    Extracts plan details and associated group information into a single flat dictionary.
+
+    Args:
+        p: ORM Plan instance.
+
+    Returns:
+        dict: Flattened plan data with plan_id, name, price, validity, type, group,
+            description, criteria, status, and creation metadata.
+    """
     return {
         "plan_id": p.plan_id,
         "plan_name": p.plan_name,
@@ -403,6 +503,16 @@ def _row_from_plan(p) -> dict:
     }
 
 async def generate_plans_report(session: AsyncSession, filters: PlanReportFilter) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate plans report or exported file depending on filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (PlanReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     plans = await get_plans(session, filters)
     rows = [_row_from_plan(p) for p in plans]
 
@@ -463,7 +573,18 @@ async def generate_plans_report(session: AsyncSession, filters: PlanReportFilter
 
 
 def _row_from_r(r) -> dict:
-    """Flatten ORM ReferralReward to dict for JSON/export."""
+    """
+    Flatten a ReferralReward ORM object to a dict for JSON/export.
+
+    Includes referrer and referred user details along with reward status and amounts.
+
+    Args:
+        r: ORM ReferralReward instance.
+
+    Returns:
+        dict: Flattened referral reward data with reward_id, user pairs, amounts,
+            status, created/claimed timestamps.
+    """
     return {
         "reward_id": r.reward_id,
         "referrer_id": r.referrer_id,
@@ -479,6 +600,16 @@ def _row_from_r(r) -> dict:
     }
 
 async def generate_referral_report(session: AsyncSession, filters: ReferralReportFilter) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate referral rewards report or exported file according to filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (ReferralReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     rows_orm = await get_referrals(session, filters)
     rows = [_row_from_r(r) for r in rows_orm]
 
@@ -538,6 +669,18 @@ async def generate_referral_report(session: AsyncSession, filters: ReferralRepor
 
 
 def _row_from_rp_rep(rp) -> dict:
+    """
+    Convert a RolePermission ORM object into a flattened dict for export.
+
+    Merges role and permission details into a single row.
+
+    Args:
+        rp: ORM RolePermission instance.
+
+    Returns:
+        dict: Flattened role-permission data with id, role_name, resource, and permission flags
+            (read, write, edit, delete).
+    """
     return {
         "id": rp.id,
         "role_id": rp.role_id,
@@ -554,6 +697,16 @@ async def generate_role_permission_report(
     session: AsyncSession,
     filters: RolePermissionReportFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate role-permission report or exported file.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (RolePermissionReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     objs = await get_role_permissions(session, filters)
     rows = [_row_from_rp_rep(o) for o in objs]
 
@@ -600,6 +753,18 @@ async def generate_role_permission_report(
 
 
 def _row_from_session(s) -> dict:
+    """
+    Flatten a session ORM object to a dict for JSON/export.
+
+    Includes session timestamps, JWT token info (jti), and active/revoked status.
+
+    Args:
+        s: ORM session instance.
+
+    Returns:
+        dict: Flattened session data with session_id, user_id, JWT tokens, expiry dates,
+            login/activity times, and revocation info.
+    """
     return {
         "session_id": str(s.session_id),
         "user_id": s.user_id,
@@ -616,6 +781,16 @@ async def generate_sessions_report(
     session: AsyncSession,
     filters: SessionsReportFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate sessions report or exported file depending on filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (SessionsReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     objs = await get_sessions(session, filters)
     rows = [_row_from_session(o) for o in objs]
 
@@ -675,6 +850,19 @@ async def generate_sessions_report(
 
 
 def _row_from_txn(t) -> dict:
+    """
+    Flatten a Transaction ORM object to a dict for JSON/export.
+
+    Includes transaction details (type, category, amount, status), parties (from/to phone),
+    plan/offer references, source, and payment method.
+
+    Args:
+        t: ORM Transaction instance.
+
+    Returns:
+        dict: Flattened transaction data with txn_id, amounts, statuses, phone numbers,
+            payment details, and related plan/offer IDs.
+    """
     return {
         "txn_id": t.txn_id,
         "user_id": t.user_id,
@@ -697,6 +885,16 @@ async def generate_transactions_report(
     session: AsyncSession,
     filters: TransactionsReportFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate transactions report or exported file according to filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (TransactionsReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     objs = await get_transactions(session, filters)
     rows = [_row_from_txn(o) for o in objs]
 
@@ -759,6 +957,18 @@ async def generate_transactions_report(
 
 
 def _row_from_auser(u) -> dict:
+    """
+    Flatten an archived User ORM object to a dict for JSON/export.
+
+    Includes user profile, wallet balance, referral info, and deletion timestamps.
+
+    Args:
+        u: ORM UserArchieve instance.
+
+    Returns:
+        dict: Flattened archived user data with user_id, name, email, phone, referral codes,
+            type, status, wallet, and created/deleted timestamps.
+    """
     return {
         "user_id": u.user_id,
         "name": u.name,
@@ -777,6 +987,16 @@ async def generate_users_archive_report(
     session: AsyncSession,
     filters: UsersArchiveFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate users archive report or exported file depending on filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (UsersArchiveFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     objs = await get_users_archive(session, filters)
     rows = [_row_from_auser(u) for u in objs]
 
@@ -836,6 +1056,18 @@ async def generate_users_archive_report(
 
 
 def _row_from_user(u) -> dict:
+    """
+    Flatten a User ORM object to a dict for JSON/export.
+
+    Includes user profile info, wallet balance, referral codes, status, and timestamps.
+
+    Args:
+        u: ORM User instance.
+
+    Returns:
+        dict: Flattened user data with user_id, name, email, phone, referral codes,
+            type, status, wallet balance, and created/updated timestamps.
+    """
     return {
         "user_id": u.user_id,
         "name": u.name,
@@ -854,6 +1086,16 @@ async def generate_users_report(
     session: AsyncSession,
     filters: UsersReportFilter
 ) -> Union[List[dict], Tuple[io.BytesIO, str, str]]:
+    """
+    Generate users report or an exported file according to filters.
+
+    Args:
+        session (AsyncSession): DB session.
+        filters (UsersReportFilter): Filter and export options.
+
+    Returns:
+        list|tuple: JSON list when export_type is "none", else (buffer, content_type, filename).
+    """
     objs = await get_users(session, filters)
     rows = [_row_from_user(u) for u in objs]
 

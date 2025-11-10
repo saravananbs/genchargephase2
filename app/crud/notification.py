@@ -20,7 +20,22 @@ class NotificationCRUD:
         attachments: Optional[Dict[str, Any]] = None,
         scheduled_at: Optional[datetime] = None
     ) -> dict:
-    
+        """
+        Create a new notification in MongoDB.
+
+        Args:
+            db (AsyncIOMotorDatabase): Motor async database instance.
+            sender_type (str): Type of sender (e.g., 'admin', 'system').
+            description (str): Notification message.
+            recipient_type (str): Type of recipient (e.g., 'all_users', 'admin', 'user').
+            recipient_id (Optional[int]): ID of specific recipient if applicable.
+            notif_type (str): Type of notification (e.g., 'announcement', 'alert').
+            attachments (Optional[Dict[str, Any]]): Optional attachment data.
+            scheduled_at (Optional[datetime]): Scheduled delivery time.
+
+        Returns:
+            dict: The created notification document.
+        """
         notification_doc = {
             "sender_type": sender_type,
             "description": description,
@@ -42,6 +57,19 @@ class NotificationCRUD:
         user_id: Optional[int] = None,
         admin_id: Optional[int] = None,
     ) -> List[Dict]:
+        """
+        Retrieve notifications for a user or admin based on recipient criteria.
+
+        Fetches notifications that match the user/admin ID or recipient type (all_users, prepaid_users, etc.).
+
+        Args:
+            db (AsyncIOMotorDatabase): Motor async database instance.
+            user_id (Optional[int]): ID of the user retrieving notifications.
+            admin_id (Optional[int]): ID of the admin retrieving notifications.
+
+        Returns:
+            List[Dict]: List of notifications sorted by creation date descending.
+        """
         query = {"$or": []}
         
         if admin_id is not None:
@@ -71,6 +99,21 @@ class NotificationCRUD:
 
     @staticmethod
     async def delete_notification(db: AsyncIOMotorDatabase, _id: PyObjectId, user_id: Optional[int], admin_id: Optional[int]) -> bool:
+        """
+        Delete a notification if the user/admin has permission.
+
+        Broadcast notifications (all_users, prepaid_users, etc.) cannot be deleted.
+        Personal notifications can only be deleted by their intended recipient.
+
+        Args:
+            db (AsyncIOMotorDatabase): Motor async database instance.
+            _id (PyObjectId): MongoDB ObjectId of the notification.
+            user_id (Optional[int]): ID of the user attempting deletion.
+            admin_id (Optional[int]): ID of the admin attempting deletion.
+
+        Returns:
+            bool: True if notification was deleted, False otherwise.
+        """
         notification = await db[NotificationCRUD.COLLECTION].find_one({"_id": ObjectId(_id)})
         if not notification:
             return False
@@ -98,6 +141,19 @@ class NotificationCRUD:
         attachments: Optional[Dict[str, Any]] = None,
         scheduled_at: Optional[datetime] = None
     ) -> dict:
+        """
+        Create an announcement notification for specified recipients.
+
+        Args:
+            db (AsyncIOMotorDatabase): Motor async database instance.
+            recipient_type (AnnouncementRecipientType): Recipient type enum value.
+            description (str): Announcement message.
+            attachments (Optional[Dict[str, Any]]): Optional attachment data.
+            scheduled_at (Optional[datetime]): Scheduled delivery time.
+
+        Returns:
+            dict: The created announcement notification document.
+        """
         return await NotificationCRUD.create_notification(
             db=db,
             sender_type="admin",

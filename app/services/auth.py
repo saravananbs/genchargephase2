@@ -21,11 +21,37 @@ from ..core.config import settings
 
 
 class AuthService:
+    """
+    Authentication service implementing signup, login, logout and token refresh flows.
+
+    This service uses the application's relational DB (via AsyncSession), Redis for
+    ephemeral OTP storage, and MongoDB for audit logs. It issues JWT access and
+    refresh tokens using the configured secrets.
+    """
     def __init__(self, db: AsyncSession = Depends(get_db)):
+        """
+        Initialize AuthService with a database session dependency.
+
+        Args:
+            db (AsyncSession): Async SQLAlchemy session injected by FastAPI.
+        """
         self.db = db
 
     # -------------------- USER SIGNUP -------------------- #
     async def signup(self, request: SignupRequest, response: Response):
+        """
+        Start signup flow by storing OTP and user data in Redis and sending OTP.
+
+        Args:
+            request (SignupRequest): Signup payload containing phone_number and other user details.
+            response (Response): FastAPI response object for setting cookies if needed.
+
+        Returns:
+            dict: A simple message indicating that the OTP was sent.
+
+        Raises:
+            HTTPException: 400 if the phone number is already associated with an account.
+        """
         user = await get_user_by_phone(self.db, request.phone_number)
         admin = await get_admin_by_phone(self.db, request.phone_number)
 
@@ -51,6 +77,19 @@ class AuthService:
         return {"message": f"OTP sent to {request.phone_number}"}
 
     async def verify_otp_signup(self, req: OTPVerifyRequest, response: Response):
+        """
+        Verify OTP for signup, create the user, create session and return access token.
+
+        Args:
+            req (OTPVerifyRequest): Contains phone number and otp.
+            response (Response): FastAPI response used to set the refresh token cookie.
+
+        Returns:
+            Token: Contains the issued access token.
+
+        Raises:
+            HTTPException: 400 when OTP is missing/invalid.
+        """
         redis = await get_redis()
         stored_data = await redis.get(f"otp:{req.phone_number}")
 
@@ -97,6 +136,19 @@ class AuthService:
 
     # -------------------- LOGIN -------------------- #
     async def login(self, request: LoginRequest, response: Response):
+        """
+        Initiate login by determining identity type (user/admin), storing an OTP in Redis and sending it.
+
+        Args:
+            request (LoginRequest): Login request containing phone_number.
+            response (Response): FastAPI response object.
+
+        Returns:
+            dict: Message indicating OTP was sent.
+
+        Raises:
+            HTTPException: 400 for invalid or inactive account.
+        """
         user = await get_user_by_phone(self.db, request.phone_number)
         admin = await get_admin_by_phone(self.db, request.phone_number)
 
@@ -134,6 +186,22 @@ class AuthService:
         return {"message": f"OTP sent to {request.phone_number}"}
 
     async def verify_otp_login(self, req, response: Response):
+        """
+        Verify OTP for login and issue access/refresh tokens.
+
+        The method supports both user and admin logins. It sets a secure refresh
+        token cookie and records an audit log on successful login.
+
+        Args:
+            req: Request-like object holding `username` and `password` (OTP) fields.
+            response (Response): FastAPI response to set the refresh cookie.
+
+        Returns:
+            Token: Issued access token.
+
+        Raises:
+            HTTPException: 400 when OTP is missing/invalid or account not found.
+        """
         redis = await get_redis()
         stored_data = await redis.get(f"otp:{req.username}")
 
@@ -198,6 +266,20 @@ class AuthService:
 
     # -------------------- LOGOUT -------------------- #
     async def logout(self, request: Request, response: Response, current_user):
+        """
+        Log out the current session by revoking the session and refresh token.
+
+        Args:
+            request (Request): Incoming request (used to read refresh token cookie).
+            response (Response): Response object to delete cookies.
+            current_user: The currently authenticated user/admin object.
+
+        Returns:
+            dict: Message confirming logout.
+
+        Raises:
+            HTTPException: 401 if refresh token cookie missing or invalid; 400 if session not found.
+        """
         refresh_token = request.cookies.get("refresh_token")
         if not refresh_token:
             raise HTTPException(status_code=401, detail="No refresh token cookie found")
@@ -241,6 +323,22 @@ class AuthService:
 
     # -------------------- REFRESH TOKEN -------------------- #
     async def refresh_token(self, request: Request, response: Response):
+        """
+        Refresh access and refresh tokens using a valid refresh token cookie.
+
+        This validates the refresh token, checks revocation and session validity,
+        issues new tokens, and rotates the session record.
+
+        Args:
+            request (Request): Incoming request containing `refresh_token` cookie.
+            response (Response): Response object used to set the new refresh cookie.
+
+        Returns:
+            Token: Newly issued access token.
+
+        Raises:
+            HTTPException: 401 for missing/invalid/revoked/expired refresh token or missing account.
+        """
         refresh_token = request.cookies.get("refresh_token")
         if not refresh_token:
             raise HTTPException(status_code=401, detail="Missing refresh token cookie")

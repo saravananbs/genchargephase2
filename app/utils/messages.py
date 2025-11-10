@@ -13,7 +13,19 @@ load_dotenv()
 
 def normalize_indian_number(number: str) -> str:
     """
-    Converts +91XXXXXXXXXX, 91XXXXXXXXXX, 0XXXXXXXXXX to just digits.
+    Normalize an Indian phone number string to a 10-digit numeric string.
+
+    This removes non-digit characters and strips common country/leading
+    zero prefixes such as "+91", "91" or a leading "0".
+
+    Args:
+        number (str): The input phone number to normalize.
+
+    Returns:
+        str: A 10-digit phone number string (digits only).
+
+    Raises:
+        ValueError: If the normalized result is not exactly 10 digits.
     """
     digits = re.sub(r'\D', '', number)
     if digits.startswith("91") and len(digits) == 12:
@@ -27,8 +39,20 @@ def normalize_indian_number(number: str) -> str:
 
 async def send_sms_fast2sms(message: str, to_phone: str) -> dict:
     """
-    Sends SMS using Fast2SMS Dev API asynchronously.
-    Returns a dict with 'status' and 'response'.
+    Send an SMS using the Fast2SMS API asynchronously.
+
+    Args:
+        message (str): The text message to send.
+        to_phone (str): Recipient phone number in any common format.
+
+    Returns:
+        dict: A dictionary with keys:
+            - "status": "success" or "failed".
+            - "response": API response when successful.
+            - "error": error details when failed.
+
+    Raises:
+        RuntimeError: If the Fast2SMS API key is not configured via environment.
     """
     FAST2SMS_API_URL = "https://www.fast2sms.com/dev/bulkV2"
     FAST2SMS_API_KEY = os.getenv("FAST2SMS_API_KEY")
@@ -70,10 +94,22 @@ async def send_sms_fast2sms(message: str, to_phone: str) -> dict:
 
 async def send_email(to_email: str, message: str, subject: str = "Gencharge"):
     """
-    Sends an email using Gmail's SMTP.
-    Requires environment variables:
-      GMAIL_USER  -> your Gmail address
-      GMAIL_PASS  -> your App Password (not your real password)
+    Send an email via Gmail SMTP.
+
+    Note: This function expects Gmail credentials provided via environment
+    variables `GMAIL_USER` and `GMAIL_PASS` (an app password is recommended).
+
+    Args:
+        to_email (str): Recipient email address.
+        message (str): Plain-text email body.
+        subject (str): Email subject. Defaults to "Gencharge".
+
+    Returns:
+        None
+
+    Raises:
+        EnvironmentError: If `GMAIL_USER` or `GMAIL_PASS` are not set.
+        smtplib.SMTPException: For SMTP-level failures when sending.
     """
     gmail_user = os.getenv("GMAIL_USER")
     gmail_pass = os.getenv("GMAIL_PASS")

@@ -25,7 +25,21 @@ from ..core.database import AsyncSessionLocal
 
 
 async def seed_permissions(session: AsyncSession):
-    """Seed permissions only if the Permissions table is empty."""
+    """
+    Seed the `Permission` table if it's empty.
+
+    This function inserts a predefined set of permissions. If the table already
+    contains entries the function will do nothing.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB insert/flush fails.
+    """
     existing = await session.execute(select(Permission))
     existing_permissions = existing.scalars().all()
 
@@ -62,6 +76,22 @@ async def seed_permissions(session: AsyncSession):
 
 
 async def seed_roles_and_role_permissions(session: AsyncSession):
+    """
+    Seed default roles and associated role-permission mappings.
+
+    Inserts a small set of roles and creates `RolePermission` entries based on
+    the available `Permission` records. If any roles already exist the function
+    will skip seeding.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
 
     existing_roles = await session.execute(select(Role))
     existing_roles = existing_roles.scalars().all()
@@ -128,7 +158,18 @@ async def seed_roles_and_role_permissions(session: AsyncSession):
 
 
 async def seed_admins(session: AsyncSession):
-    """Seed 3 admins for each existing role."""
+    """
+    Seed administrator accounts for each role (3 admins per role).
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     existing_admins = await session.execute(select(Admin))
     existing_admins = existing_admins.scalars().all()
 
@@ -167,25 +208,67 @@ async def seed_admins(session: AsyncSession):
 
 # Helper to generate random codes, names, etc.
 def random_referral_code(length=6):
+    """
+    Generate a random referral code of given length.
+
+    Args:
+        length (int): Length of the code. Defaults to 6.
+
+    Returns:
+        str: Uppercase alphanumeric referral code.
+    """
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
 def random_phone_number():
+    """
+    Generate a random 10-digit phone number string starting with '9'.
+
+    Returns:
+        str: Random phone number.
+    """
     return f"9{random.randint(100000000, 999999999)}"
 
 
 def random_name():
+    """
+    Produce a random realistic-looking first and last name.
+
+    Returns:
+        str: Full name (first + last).
+    """
     first_names = ["Aarav", "Vihaan", "Reyansh", "Isha", "Kavya", "Diya", "Rohan", "Aditi", "Aryan", "Meera"]
     last_names = ["Sharma", "Patel", "Reddy", "Iyer", "Kumar", "Bose", "Das", "Nair", "Menon", "Singh"]
     return f"{random.choice(first_names)} {random.choice(last_names)}"
 
 
 def random_id(length=8):
+    """
+    Generate a random alphanumeric identifier.
+
+    Args:
+        length (int): Length of the identifier. Defaults to 8.
+
+    Returns:
+        str: Uppercase alphanumeric identifier.
+    """
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
 async def seed_users(session: AsyncSession, count=50):
-    """Seed 50 users if table is empty."""
+    """
+    Seed a number of user records if the `User` table is empty.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+        count (int): Number of users to create. Defaults to 50.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     existing_users = await session.execute(select(User))
     existing_users = existing_users.scalars().all()
 
@@ -238,7 +321,19 @@ async def seed_users(session: AsyncSession, count=50):
 
 
 async def seed_user_archives(session: AsyncSession, count=5):
-    """Seed 5 user archive entries if table is empty."""
+    """
+    Seed user archive records if the `UserArchieve` table is empty.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+        count (int): Number of archive entries to create. Defaults to 5.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     existing_archives = await session.execute(select(UserArchieve))
     existing_archives = existing_archives.scalars().all()
 
@@ -292,7 +387,18 @@ async def seed_user_archives(session: AsyncSession, count=5):
 
 
 async def seed_user_preferences(session: AsyncSession):
-    """Seed UserPreferences for all existing Users that don't have preferences yet."""
+    """
+    Create `UserPreference` records for users who don't yet have preferences.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding user preferences...")
 
     # Fetch all users
@@ -338,7 +444,21 @@ async def seed_user_preferences(session: AsyncSession):
 
 
 async def seed_plan_groups_and_plans(session: AsyncSession):
-    """Seed 5 plan groups and 5 plans under each."""
+    """
+    Seed `PlanGroup` and associated `Plan` records.
+
+    Creates several plan groups and multiple plans per group. Skips seeding
+    if plan groups already exist.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding PlanGroups and Plans...")
 
     # Step 1: Check if PlanGroups already exist
@@ -395,7 +515,18 @@ async def seed_plan_groups_and_plans(session: AsyncSession):
 
 
 async def seed_offer_types_and_offers(session: AsyncSession):
-    """Seed 4 offer types and 5 offers per type."""
+    """
+    Seed `OfferType` and `Offer` records with example data.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding OfferTypes and Offers...")
 
     # Step 1: Check if OfferTypes already exist
@@ -452,7 +583,21 @@ async def seed_offer_types_and_offers(session: AsyncSession):
 
 
 async def seed_autopay(session: AsyncSession):
-    """Seed 2–5 AutoPay entries per user."""
+    """
+    Seed AutoPay entries for existing users and plans.
+
+    Generates 2–5 AutoPay entries per user and skips if AutoPay records
+    already exist.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding AutoPay entries...")
 
     # Fetch all users and plans
@@ -505,7 +650,21 @@ async def seed_autopay(session: AsyncSession):
 
 
 async def seed_current_active_plans(session: AsyncSession):
-    """Seed 2–4 CurrentActivePlans for each user."""
+    """
+    Seed `CurrentActivePlan` records for users.
+
+    Creates 2–4 active/current plans per user with randomized validity and
+    status. Skips seeding if entries already exist.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding Current Active Plans...")
 
     # Step 1: Check if data already exists
@@ -569,7 +728,18 @@ async def seed_current_active_plans(session: AsyncSession):
 
 
 async def seed_backups(session: AsyncSession):
-    """Seed 10 backup records with realistic data."""
+    """
+    Seed example `Backup` records to simulate backup metadata.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding Backup data...")
 
     # Step 1: Check if backups already exist
@@ -623,7 +793,18 @@ async def seed_backups(session: AsyncSession):
 
 
 async def seed_transactions(session: AsyncSession):
-    """Seed 50 realistic transaction entries."""
+    """
+    Seed example `Transaction` records to simulate application transactions.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding Transactions...")
 
     # Step 1: Check if Transactions already exist
@@ -697,7 +878,18 @@ async def seed_transactions(session: AsyncSession):
 
 
 async def seed_referral_rewards(session: AsyncSession):
-    """Seed ReferralRewards based on Users' referral relationships."""
+    """
+    Create `ReferralReward` records based on existing users' referral codes.
+
+    Args:
+        session (AsyncSession): Async SQLAlchemy session used for DB operations.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
+    """
     print("🟢 Seeding ReferralRewards...")
 
     # Step 1: Check if already seeded
@@ -756,6 +948,18 @@ async def seed_referral_rewards(session: AsyncSession):
 
 
 async def seed_all():
+    """
+    Run the full seeding pipeline against a local AsyncSessionLocal.
+
+    This convenience function runs all individual seeders in a single
+    transaction and commits when complete.
+
+    Returns:
+        None
+
+    Raises:
+        sqlalchemy.exc.SQLAlchemyError: If any seeding step fails.
+    """
     async with AsyncSessionLocal() as session:
         await seed_permissions(session)
         await seed_roles_and_role_permissions(session)

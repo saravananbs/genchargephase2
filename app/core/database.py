@@ -23,6 +23,15 @@ Base = declarative_base()
 
 # Dependency to get the async DB session
 async def get_db():
+    """
+    Async database session dependency for FastAPI route handlers.
+
+    Creates a new async SQLAlchemy session, yields it for route use,
+    and ensures proper closure on completion or error.
+
+    Yields:
+        AsyncSession: Active async database session for query execution.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
