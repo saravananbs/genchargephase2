@@ -33,11 +33,66 @@ async def create_backup(
     authorized = Security(require_scopes, scopes=["Backup:write"])
 ):
     """
-    Perform pg_dump backup for specified tables with optional date range filtering.
+    Create a new database backup with optional date range filtering.
     
-    - Accepts list of tables with optional `date_column`, `start_date`, `end_date`
-    - Uses existing `get_db()` session
-    - Returns backup file info on success
+    Initiates a PostgreSQL dump backup operation for specified tables with optional
+    filtering by date columns and ranges. Uses pg_dump for consistent, reliable
+    backups. Backup file is stored on disk and metadata recorded in database.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Backup:write
+        - Only admins can initiate backups
+        - Requires storage permissions on server
+    
+    Request Body:
+        BackupRequest (JSON):
+            - tables (list): Array of table objects to backup:
+                - table_name (str): Name of table to backup (required)
+                - date_column (str, optional): Column to filter by date range
+                - start_date (datetime, optional): Filter start date (ISO format)
+                - end_date (datetime, optional): Filter end date (ISO format)
+            - backup_data (str, optional): Custom backup label/metadata
+            - description (str, optional): Human-readable backup description
+    
+    Returns:
+        BackupCreateResponse:
+            - backup_file (str): Generated backup filename
+            - backup_path (str): Full file path on disk
+            - size_mb (float): Backup file size in megabytes
+    
+    Raises:
+        HTTPException(400): Invalid table names or date range parameters
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Backup:write scope
+        HTTPException(500): pg_dump execution failed or disk write error
+    
+    Example:
+        Request:
+            POST /backup/create
+            Headers: Authorization: Bearer <jwt_token>
+            Body:
+            {
+                "tables": [
+                    {
+                        "table_name": "transactions",
+                        "date_column": "created_at",
+                        "start_date": "2024-01-01T00:00:00Z",
+                        "end_date": "2024-01-31T23:59:59Z"
+                    },
+                    {
+                        "table_name": "users"
+                    }
+                ],
+                "description": "Monthly backup for January 2024"
+            }
+        
+        Response (201 Created):
+            {
+                "backup_file": "backup_20240120_143000.sql",
+                "backup_path": "/backups/backup_20240120_143000.sql",
+                "size_mb": 245.67
+            }
     """
     # Convert to expected dict format
     table_date_ranges = [
@@ -119,7 +174,63 @@ async def list_backups(db: AsyncSession = Depends(get_db),
     authorized = Security(require_scopes, scopes=["Backup:read"])
 ):
     """
-    Retrieve all backup records from the database.
+    List all backup records with creation and size details.
+    
+    Retrieves a comprehensive list of all database backups that have been created
+    in the system. Shows backup metadata including timestamps, file sizes, tables
+    included, and backup status. Ordered by most recent first.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Backup:read
+        - Typically restricted to super-admin or platform admin
+    
+    Returns:
+        List[BackupResponse]: Array of backup objects, each containing:
+            - backup_id (str): Unique backup identifier (UUID)
+            - backup_file (str): Filename of backup
+            - storage_url (str): Full path to backup file
+            - size_mb (float): Backup file size in megabytes
+            - description (str): Human-readable description
+            - tables (list): Tables included in backup
+            - created_at (datetime): When backup was created
+            - created_by (int): Admin ID who initiated backup
+            - status (str): Backup status (completed, failed, partial)
+    
+    Raises:
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Backup:read scope
+    
+    Example:
+        Request:
+            GET /backup/
+            Headers: Authorization: Bearer <jwt_token>
+        
+        Response (200 OK):
+            [
+                {
+                    "backup_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                    "backup_file": "backup_20240120_143000.sql",
+                    "storage_url": "/backups/backup_20240120_143000.sql",
+                    "size_mb": 245.67,
+                    "description": "Monthly backup for January 2024",
+                    "tables": ["transactions", "users", "plans"],
+                    "created_at": "2024-01-20T14:30:00Z",
+                    "created_by": 1,
+                    "status": "completed"
+                },
+                {
+                    "backup_id": "e38ad214-d6ae-4f31-83e6-1a2b3c4d5e6f",
+                    "backup_file": "backup_20240119_100000.sql",
+                    "storage_url": "/backups/backup_20240119_100000.sql",
+                    "size_mb": 198.45,
+                    "description": "Daily backup",
+                    "tables": ["transactions"],
+                    "created_at": "2024-01-19T10:00:00Z",
+                    "created_by": 1,
+                    "status": "completed"
+                }
+            ]
     """
     result = await db.execute(select(Backup).order_by(Backup.created_at.desc()))
     backups = result.scalars().all()
@@ -137,7 +248,38 @@ async def delete_backup(
     authorized = Security(require_scopes, scopes=["Backup:delete"])
 ):
     """
-    Delete backup record from DB and optionally remove the file.
+    Delete a backup record and optionally remove the backup file.
+    
+    Removes a backup record from the system and optionally deletes the physical
+    backup file from disk. This action is permanent and cannot be undone.
+    Deletion is logged for audit purposes. File removal is done asynchronously
+    to avoid blocking the response.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Backup:delete
+        - Only super-admin can delete backups
+        - Action is logged in audit trail
+    
+    Path Parameters:
+        - backup_id (str): UUID of backup to delete (must exist)
+    
+    Returns:
+        None: HTTP 204 No Content (successful deletion)
+    
+    Raises:
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Backup:delete scope
+        HTTPException(404): Backup with given ID not found
+        HTTPException(500): Database or disk operation failed
+    
+    Example:
+        Request:
+            DELETE /backup/f47ac10b-58cc-4372-a567-0e02b2c3d479
+            Headers: Authorization: Bearer <jwt_token>
+        
+        Response (204 No Content):
+            (empty body)
     """
     result = await db.execute(select(Backup).where(Backup.backup_id == backup_id))
     backup = result.scalar_one_or_none()
@@ -177,7 +319,65 @@ async def restore_backup(
     authorized = Security(require_scopes, scopes=["Backup:edit"])
 ):
     """
-    Restore backup using `pg_restore`. Runs in background.
+    Restore database from backup using pg_restore.
+    
+    Initiates an asynchronous restore operation using PostgreSQL pg_restore utility.
+    Restores data from a previously created backup file into a target database.
+    Supports optional cleaning of existing data before restore. Long-running
+    operation runs in background; returns 202 Accepted immediately with job status.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Backup:edit
+        - Only super-admin can restore backups
+        - Restore operations are logged for audit
+        - Warning: Destructive operation if clean=true
+    
+    Path Parameters:
+        - backup_id (str): UUID of backup to restore from (must exist)
+    
+    Request Body:
+        RestoreRequest (JSON):
+            - target_db (str, optional): Target database name (uses current if not provided)
+            - clean (bool, optional): Clean database before restore (default: false)
+                - If true: drops existing objects and schema before restoring
+                - If false: merges restored data with existing database
+    
+    Returns:
+        dict: Restore job status and details:
+            {
+                "message": "Restore started in background",
+                "backup_id": <str>,
+                "target_db": <str>,
+                "clean": <bool>
+            }
+    
+    Raises:
+        HTTPException(400): Backup file not found on disk or invalid parameters
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Backup:edit scope
+        HTTPException(404): Backup with given ID not found
+        HTTPException(500): pg_restore command failed
+    
+    Example:
+        Request:
+            POST /backup/f47ac10b-58cc-4372-a567-0e02b2c3d479/restore
+            Headers: Authorization: Bearer <jwt_token>
+            Body:
+            {
+                "target_db": "gencharge_recovery",
+                "clean": true
+            }
+        
+        Response (202 Accepted):
+            {
+                "message": "Restore started in background",
+                "backup_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                "target_db": "gencharge_recovery",
+                "clean": true
+            }
+        
+        Note: Monitor logs or check backup status endpoint for restore completion.
     """
     result = await db.execute(select(Backup).where(Backup.backup_id == backup_id))
     backup = result.scalar_one_or_none()

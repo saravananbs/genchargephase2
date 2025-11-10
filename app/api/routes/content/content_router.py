@@ -43,6 +43,65 @@ async def create_content(
     current_user: Admin = Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Content:write"])
 ):
+    """
+    Create new content (blog post, FAQ, announcement, etc.).
+    
+    Allows admins to create CMS content with optional image upload. Supports
+    multiple content types (blog, faq, help, announcement). Images are stored
+    locally and served via static file endpoint. Content is published immediately.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Content:write
+        - Restricted to admin/content team
+    
+    Form Parameters:
+        - content_type (str): Type of content (blog, faq, help, announcement)
+        - title (str): Content title (required, 1-200 chars)
+        - body (str, optional): Content body (HTML or markdown, max 50000 chars)
+        - image (file, optional): Featured image (jpg, png, webp, max 5MB)
+    
+    Returns:
+        ContentResponseAdmin: Created content with:
+            - id (str): MongoDB ObjectId
+            - content_type (str): Content type
+            - title (str): Title
+            - body (str): Content body
+            - image_url (str, optional): Image URL for serving
+            - created_by (int): Admin ID who created
+            - created_at (datetime): Creation timestamp
+            - updated_at (datetime): Last update
+    
+    Raises:
+        HTTPException(400): Invalid form data or file too large
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Content:write scope
+        HTTPException(422): Invalid content type
+    
+    Example:
+        Request:
+            POST /content/admin
+            Headers: 
+              Authorization: Bearer <jwt_token>
+              Content-Type: multipart/form-data
+            Body:
+              content_type: blog
+              title: How to Renew Your Plan
+              body: <p>Step 1: Open app...</p>
+              image: [file]
+        
+        Response (201 Created):
+            {
+                "id": "690b4d102db459363a40516a",
+                "content_type": "blog",
+                "title": "How to Renew Your Plan",
+                "body": "<p>Step 1: Open app...</p>",
+                "image_url": "/static/uploads/content_123_image.jpg",
+                "created_by": 1,
+                "created_at": "2024-01-20T10:00:00Z",
+                "updated_at": "2024-01-20T10:00:00Z"
+            }
+    """
     print(current_user.admin_id)
     return await service.create_content(content_type, title, body, image, current_user)
 
@@ -63,6 +122,56 @@ async def update_content(
     current_user: Admin = Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Content:edit"])
 ):
+    """
+    Update existing content.
+    
+    Modifies content fields including title, body, type, and image. Allows
+    partial updates - omitted fields are not changed. Updates are effective
+    immediately. Previous image is deleted if new image is uploaded.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Content:edit
+        - Restricted to admin/content team
+    
+    Path Parameters:
+        - content_id (str): MongoDB ObjectId of content
+    
+    Form Parameters (all optional):
+        - content_type (str): New content type (blog, faq, help, announcement)
+        - title (str): New title (1-200 chars)
+        - body (str): New content body (HTML, max 50000 chars)
+        - image (file): New featured image (jpg, png, webp, max 5MB)
+    
+    Returns:
+        ContentResponseAdmin: Updated content object
+    
+    Raises:
+        HTTPException(400): Invalid form data or file error
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Content:edit scope
+        HTTPException(404): Content not found
+        HTTPException(422): Invalid ObjectId or content type
+    
+    Example:
+        Request:
+            PUT /content/admin/690b4d102db459363a40516a
+            Headers: 
+              Authorization: Bearer <jwt_token>
+              Content-Type: multipart/form-data
+            Body:
+              title: How to Renew Your Plan - Updated Guide
+              body: <p>Updated steps for 2024...</p>
+        
+        Response (200 OK):
+            {
+                "id": "690b4d102db459363a40516a",
+                "content_type": "blog",
+                "title": "How to Renew Your Plan - Updated Guide",
+                "body": "<p>Updated steps for 2024...</p>",
+                "updated_at": "2024-01-20T11:00:00Z"
+            }
+    """
     result = await service.update_content(content_id, content_type, title, body, image, current_user)
     if not result:
         raise HTTPException(status_code=404, detail="Content not found")
@@ -91,6 +200,67 @@ async def list_contents_admin(
     current_user: Admin = Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Content:read"])
 ):
+    """
+    List all content with advanced filtering and pagination (Admin view).
+    
+    Retrieves paginated list of all system content with support for filtering
+    by title, creator, date ranges, and sorting. Used by content team to
+    manage and organize website content.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Content:read
+        - Restricted to admin/content team
+    
+    Query Parameters:
+        - title (str, optional): Filter by title (case-insensitive partial match)
+        - created_by (str, optional): Filter by creator admin ID
+        - updated_by (str, optional): Filter by last editor admin ID
+        - created_at_from (datetime, optional): Filter content created after date
+        - created_at_to (datetime, optional): Filter content created before date
+        - updated_at_from (datetime, optional): Filter content updated after date
+        - updated_at_to (datetime, optional): Filter content updated before date
+        - order_by (str, optional): Sort field (created_at, updated_at, default: created_at)
+        - order_dir (str, optional): Sort direction (asc, desc, default: desc)
+        - page (int, optional): Page number (default: 1, minimum: 1)
+        - size (int, optional): Records per page (default: 10, max: 100)
+    
+    Returns:
+        PaginatedResponseAdmin:
+            - items (list): Array of content objects with admin fields
+            - total (int): Total content count matching filters
+            - page (int): Current page number
+            - size (int): Records per page
+            - pages (int): Total pages
+    
+    Raises:
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Content:read scope
+        HTTPException(400): Invalid filter or pagination parameters
+    
+    Example:
+        Request:
+            GET /content/admin?title=plan&order_by=updated_at&order_dir=desc&page=1&size=20
+            Headers: Authorization: Bearer <jwt_token>
+        
+        Response (200 OK):
+            {
+                "items": [
+                    {
+                        "id": "690b4d102db459363a40516a",
+                        "content_type": "blog",
+                        "title": "How to Renew Your Plan",
+                        "created_by": 1,
+                        "created_at": "2024-01-20T10:00:00Z",
+                        "updated_at": "2024-01-20T11:00:00Z"
+                    }
+                ],
+                "total": 5,
+                "page": 1,
+                "size": 20,
+                "pages": 1
+            }
+    """
     filters = {}
     if title:
         filters["title"] = {"$regex": title, "$options": "i"}
@@ -129,6 +299,67 @@ async def list_contents_public(
     size: int = Query(10, ge=1, le=100),
     crud: ContentCRUD = Depends(get_crud)
 ):
+    """
+    List all public content (visible to end users).
+    
+    Retrieves paginated list of published CMS content (blog posts, FAQs, help articles,
+    announcements) displayed on the app and website. Public endpoint requiring no
+    authentication. Content is sorted by recency.
+    
+    Security:
+        - No authentication required (public endpoint)
+        - All users can access this endpoint
+    
+    Query Parameters:
+        - page (int, optional): Page number (default: 1, minimum: 1)
+        - size (int, optional): Records per page (default: 10, max: 100)
+    
+    Returns:
+        PaginatedResponseUser:
+            - items (list): Array of public content objects:
+                - id (str): Content ID
+                - content_type (str): Type (blog, faq, help, announcement)
+                - title (str): Content title
+                - body (str): Content body
+                - image_url (str, optional): Featured image URL
+                - created_at (datetime): Publication date
+            - total (int): Total content count
+            - page (int): Current page
+            - size (int): Records per page
+            - pages (int): Total pages
+    
+    Raises:
+        HTTPException(400): Invalid pagination parameters
+    
+    Example:
+        Request:
+            GET /content?page=1&size=10
+        
+        Response (200 OK):
+            {
+                "items": [
+                    {
+                        "id": "690b4d102db459363a40516a",
+                        "content_type": "blog",
+                        "title": "How to Renew Your Plan",
+                        "body": "<p>Step 1: Open app...</p>",
+                        "image_url": "/static/uploads/content_123.jpg",
+                        "created_at": "2024-01-20T10:00:00Z"
+                    },
+                    {
+                        "id": "690b4d102db459363a40516b",
+                        "content_type": "faq",
+                        "title": "How do I check my balance?",
+                        "body": "<p>Your balance is shown in the dashboard...</p>",
+                        "created_at": "2024-01-19T15:00:00Z"
+                    }
+                ],
+                "total": 45,
+                "page": 1,
+                "size": 10,
+                "pages": 5
+            }
+    """
     skip = (page - 1) * size
     total = await crud.count({})
     docs = await crud.list_public(skip, size)
@@ -150,6 +381,42 @@ async def delete_content(
     current_user: Admin = Depends(get_current_user),
     authorized = Security(require_scopes, scopes=["Content:delete"])
 ):
+    """
+    Delete content permanently.
+    
+    Removes content from CMS. Associated images are also deleted from storage.
+    This action is permanent and cannot be undone. Deletion is logged for audit.
+    
+    Security:
+        - Requires valid JWT access token
+        - Scope: Content:delete
+        - Restricted to admin/content team
+    
+    Path Parameters:
+        - content_id (str): MongoDB ObjectId of content to delete
+    
+    Returns:
+        dict: Deletion confirmation:
+            {
+                "message": "Content <id> deleted successfully"
+            }
+    
+    Raises:
+        HTTPException(401): User not authenticated
+        HTTPException(403): Missing Content:delete scope
+        HTTPException(404): Content not found
+        HTTPException(422): Invalid ObjectId format
+    
+    Example:
+        Request:
+            DELETE /content/admin/690b4d102db459363a40516a
+            Headers: Authorization: Bearer <jwt_token>
+        
+        Response (200 OK):
+            {
+                "message": "Content 690b4d102db459363a40516a deleted successfully"
+            }
+    """
     doc = await service.delete_content(content_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Content not found")
