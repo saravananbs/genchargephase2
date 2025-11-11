@@ -139,7 +139,7 @@ async def claim_referral_if_eligible(
         reward_amount = 50  # e.g. 50.00
 
     # --- 1. Validate users ---
-    if str(referrer.status) != "UserStatus.active" or str(referred.status) != "UserStatus.active":
+    if referrer and str(referrer.status) != "UserStatus.active" or str(referred.status) != "UserStatus.active":
         print("non active")
         return None
     

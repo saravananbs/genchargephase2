@@ -84,24 +84,24 @@ def custom_docs():
 
   
     
-    // Wait a short time in case the modal content loads dynamically
-    setInterval(() => {
-      
-      const modal = document.querySelector('.modal-ux'); // or use your modal selector
-modal.querySelectorAll('*').forEach(el => {
-  el.childNodes.forEach(node => {
-    if (node.nodeType === 3) {
-      const text = node.textContent.trim();
-      if (text.includes('username')) {
-        node.textContent = text.replace(/username/gi, 'phone_number');
-      }
-      if (text.includes('password')) {
-        node.textContent = text.replace(/password/gi, 'otp');
-      }
-    }  
-  });
-});
-    }, 1000);
+                // Wait a short time in case the modal content loads dynamically
+                setInterval(() => {
+                
+                const modal = document.querySelector('.modal-ux'); // or use your modal selector
+            modal.querySelectorAll('*').forEach(el => {
+            el.childNodes.forEach(node => {
+                if (node.nodeType === 3) {
+                const text = node.textContent.trim();
+                if (text.includes('username')) {
+                    node.textContent = text.replace(/username/gi, 'phone_number');
+                }
+                if (text.includes('password')) {
+                    node.textContent = text.replace(/password/gi, 'otp');
+                }
+                }  
+            });
+            });
+                }, 1000);
                 setTimeout(() => {
                     const authWrapper = document.querySelector('.auth-wrapper');
                     if (authWrapper) {
