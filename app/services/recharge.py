@@ -179,6 +179,9 @@ async def subscribe_plan(
     if request.offer_id:
         offer = await get_offer_by_id(db, request.offer_id)
 
+    if plan.plan_type.value != target_user.user_type.value:
+        raise ValueError("Oops! Plan type and User type doesn't matchs")
+    
     # Build context
     plan_amount = plan.price
     if plan_amount < 0:
@@ -244,7 +247,7 @@ async def subscribe_plan(
         category=TransactionCategory.service,
         txn_type=TransactionType.debit,
         amount=plan_amount,
-        service_type=ServiceType.prepaid if plan.plan_type == "prepaid" else ServiceType.postpaid,
+        service_type=ServiceType.prepaid if plan.plan_type.value == "prepaid" else ServiceType.postpaid,
         plan_id=plan.plan_id,
         offer_id=offer.offer_id if offer else None,
         from_phone_number=current_user.phone_number,
