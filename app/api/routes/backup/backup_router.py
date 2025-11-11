@@ -1,7 +1,7 @@
 # routers/backup.py
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Security
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete, update, text
 from ....models.backup import Backup
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
@@ -381,6 +381,14 @@ async def restore_backup(
     """
     result = await db.execute(select(Backup).where(Backup.backup_id == backup_id))
     backup = result.scalar_one_or_none()
+
+    try:
+        db_check = await db.execute(text(f"SELECT 1 FROM pg_database WHERE datname = :dbname"), {"dbname": request.target_db})
+        if not db_check.scalar():
+            raise HTTPException(status_code=400, detail=f"Target database '{request.target_db}' does not exist")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Database validation failed: {str(e)}")
+
 
     if not backup:
         raise HTTPException(status_code=404, detail="Backup not found")
