@@ -123,7 +123,6 @@ modal.querySelectorAll('*').forEach(el => {
                             <option value="Referrals">Referrals</option>
                             <option value="Reports">Reports</option>
                             <option value="Roles">Roles</option>
-                            <option value="Testing">Testing</option>
                             <option value="Users">Users</option>
                         `;
 
@@ -184,7 +183,7 @@ app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
 
 
 
-app.include_router(testing_router, prefix="/test", tags=["Testing"])
+# app.include_router(testing_router, prefix="/test", tags=["Testing"])
 
 
 
