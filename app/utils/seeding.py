@@ -295,7 +295,7 @@ async def seed_users(session: AsyncSession, count=50):
 
         name = random_name()
         email = f"{name.lower().replace(' ', '_')}{i}@example.com"
-        user_type = random.choice(list(UserType)).value
+        user_type = random.choice(list(["prepaid", "postpaid"]))
         status = random.choice(list(UserStatus)).value
         wallet_balance = round(random.uniform(0, 5000), 2)
         created_at = datetime.now()
@@ -360,7 +360,7 @@ async def seed_user_archives(session: AsyncSession, count=5):
 
         name = random_name()
         email = f"{name.lower().replace(' ', '_')}_arch{i}@example.com"
-        user_type = random.choice(list(UserType)).value
+        user_type = random.choice(list(["prepaid", "postpaid"]))
         status = random.choice(list(UserStatus)).value
         wallet_balance = round(random.uniform(0, 5000), 2)
         created_at = datetime.now()

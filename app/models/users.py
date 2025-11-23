@@ -12,6 +12,7 @@ class UserType(enum.Enum):
         prepaid: Prepaid service user.
         postpaid: Postpaid service user.
     """
+    none = None
     prepaid = "prepaid"
     postpaid = "postpaid"
 

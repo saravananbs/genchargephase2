@@ -164,7 +164,11 @@ async def register_user_route(
         }
         ```
     """
-    user = await crud_user.register_user(db, current_user, data.name, data.email, data.referee_code)
+    user = await crud_user.register_user(
+        db, current_user=current_user, 
+        name=data.name, email=data.email, 
+        referee_code=data.referee_code, user_type=data.user_type
+    )
     return user
 
 @router.post("/login")

@@ -13,7 +13,6 @@ class SignupRequest(BaseModel):
         user_type (Literal): Service type - "prepaid" or "postpaid".
     """
     phone_number: str
-    user_type: Literal["prepaid", "postpaid"]
 
 
 class OTPVerifyRequest(BaseModel):

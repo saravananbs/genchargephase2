@@ -22,7 +22,7 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     phone_number: str
     referral_code: Optional[str] = None
-    user_type: str
+    user_type: Optional[str] = None
     status: str = "active"
     wallet_balance: float = 0.0
     referee_code: Optional[str] = None
@@ -142,6 +142,7 @@ class UserRegisterRequest(BaseModel):
     """
     name: str = Field(..., min_length=2, max_length=50)
     email: EmailStr
+    user_type: Literal["prepaid", "postpaid"]
     referee_code: Optional[str] = None
 
 class UserRegisterResponse(BaseModel):

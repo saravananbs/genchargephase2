@@ -47,7 +47,6 @@ async def create_user(db: AsyncSession, user: UserCreatenew):
         phone_number=user.phone_number,
         referral_code=referal_code,
         referee_code =user.referee_code,
-        user_type=user.user_type,
         status=user.status,
         wallet_balance=user.wallet_balance,
         created_at=user.created_at or datetime.now(),
@@ -443,6 +442,7 @@ async def register_user(
     current_user: User,
     name: str,
     email: str,
+    user_type: str,
     referee_code: Optional[str] = None,
 ) -> User:
     """
@@ -505,6 +505,7 @@ async def register_user(
             name=name,
             email=email,
             referee_code=referee_code,
+            user_type=user_type,
             updated_at=datetime.now(),
         )
         .execution_options(synchronize_session="fetch")

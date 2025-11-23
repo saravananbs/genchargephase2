@@ -42,7 +42,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Log incoming request
         logger.info(
             f"INCOMING | {request.method} {request.url} | "
-            f"Client: {request.client.host if request.client else 'unknown'}"
+            f"Client: {request.client.host if request.client else 'unknown'} |"
+            f"Request Body: {request.body if request.body else 'unknown'}"
         )
 
         response = await call_next(request)
@@ -51,7 +52,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         logger.info(
             f"OUTGOING | {request.method} {request.url} | "
             f"Status: {response.status_code} | "
-            f"Duration: {process_time:.2f}ms"
+            f"Duration: {process_time:.2f}ms |"
         )
         return response
 
