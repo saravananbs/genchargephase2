@@ -81,8 +81,8 @@ async def create_plan_group(
 async def get_plan_groups(
     filters: PlanGroupFilter = Depends(),
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:read"])
+    # current_user = Depends(get_current_user),
+    # authorized = Security(require_scopes, scopes=["PlanGroups:read"])
 ):
     """
     Retrieve all plan groups with filtering and pagination.
@@ -136,8 +136,8 @@ async def get_plan_groups(
         raise HTTPException(status_code=400, detail="Invalid order_by field")
     order_column = getattr(PlanGroup, filters.order_by)
     query = query.order_by(asc(order_column) if filters.order_dir == "asc" else desc(order_column))
-    offset = (filters.page - 1) * filters.limit
-    query = query.offset(offset).limit(filters.limit)
+    # offset = (filters.page - 1) * filters.limit
+    # query = query.offset(offset).limit(filters.limit)
     result = await db.execute(query)
     groups = result.scalars().all()
     return groups
@@ -759,8 +759,8 @@ async def get_active_plans_for_users(
 
     order_column = getattr(Plan, filters.order_by, Plan.plan_id)
     query = query.order_by(asc(order_column) if filters.order_dir == "asc" else desc(order_column))
-    offset = (filters.page - 1) * filters.limit
-    query = query.offset(offset).limit(filters.limit)
+    # offset = (filters.page - 1) * filters.limit
+    # query = query.offset(offset).limit(filters.limit)
 
     result = await db.execute(query)
     plans = result.scalars().all()
