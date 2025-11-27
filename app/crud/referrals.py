@@ -2,7 +2,7 @@
 from typing import Sequence, Literal, Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from math import ceil
+from sqlalchemy.orm import selectinload
 
 from ..models.referral import ReferralReward
 from ..schemas.referrals import ReferralRewardStatus
@@ -14,8 +14,8 @@ async def get_user_referral_rewards(
     db: AsyncSession,
     *,
     user_id: int,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: ReferralRewardStatus | None = None,
     sort: Literal[
         "created_at_desc", "created_at_asc",
@@ -38,13 +38,12 @@ async def get_user_referral_rewards(
     Returns:
         tuple[Sequence[ReferralReward], int]: (list of rewards, total count).
     """
-    stmt = select(ReferralReward).where(
-        (ReferralReward.referrer_id == user_id) |
-        (ReferralReward.referred_id == user_id)
+    base_stmt = select(ReferralReward).where(
+        (ReferralReward.referrer_id == user_id)
     )
 
     if status:
-        stmt = stmt.where(ReferralReward.status == status.value)
+        base_stmt = base_stmt.where(ReferralReward.status == status.value)
 
     order_map = {
         "created_at_desc": ReferralReward.created_at.desc(),
@@ -52,13 +51,21 @@ async def get_user_referral_rewards(
         "reward_amount_desc": ReferralReward.reward_amount.desc(),
         "reward_amount_asc": ReferralReward.reward_amount.asc(),
     }
-    stmt = stmt.order_by(order_map[sort])
+    order_clause = order_map[sort]
 
-    count_stmt = select(func.count()).select_from(stmt.subquery())
+    count_stmt = select(func.count()).select_from(
+        base_stmt.order_by(None).subquery()
+    )
     total = (await db.execute(count_stmt)).scalar_one()
 
-    stmt = stmt.offset((page - 1) * size).limit(size)
-    result = await db.execute(stmt)
+    data_stmt = base_stmt.options(
+        selectinload(ReferralReward.referred)
+    ).order_by(order_clause)
+
+    if page and size:
+        data_stmt = data_stmt.offset((page - 1) * size).limit(size)
+
+    result = await db.execute(data_stmt)
     rows = result.scalars().all()
     return rows, total
 
@@ -87,10 +94,10 @@ async def get_all_referral_rewards(
     Returns:
         tuple[Sequence[ReferralReward], int]: (list of rewards, total count).
     """
-    stmt = select(ReferralReward)
+    base_stmt = select(ReferralReward)
 
     if status:
-        stmt = stmt.where(ReferralReward.status == status.value)
+        base_stmt = base_stmt.where(ReferralReward.status == status.value)
 
     order_map = {
         "created_at_desc": ReferralReward.created_at.desc(),
@@ -98,15 +105,23 @@ async def get_all_referral_rewards(
         "reward_amount_desc": ReferralReward.reward_amount.desc(),
         "reward_amount_asc": ReferralReward.reward_amount.asc(),
     }
-    stmt = stmt.order_by(order_map[sort])
+    order_clause = order_map[sort]
 
-    count_stmt = select(func.count()).select_from(stmt.subquery())
+    count_stmt = select(func.count()).select_from(
+        base_stmt.order_by(None).subquery()
+    )
     total = (await db.execute(count_stmt)).scalar_one()
 
-    stmt = stmt.offset((page - 1) * size).limit(size)
-    result = await db.execute(stmt)
+    data_stmt = base_stmt.options(
+        selectinload(ReferralReward.referred)
+    ).order_by(order_clause)
+
+    data_stmt = data_stmt.offset((page - 1) * size).limit(size)
+
+    result = await db.execute(data_stmt)
     rows = result.scalars().all()
     return rows, total
+
 
 async def claim_referral_if_eligible(
     db: AsyncSession,

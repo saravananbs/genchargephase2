@@ -79,7 +79,7 @@ async def create_plan_group(
 # READ all PlanGroups
 @router.get("/plan-group", response_model=List[PlanGroupResponse])
 async def get_plan_groups(
-    filters: PlanGroupFilter = Depends(),
+    # filters: PlanGroupFilter = Depends(),
     db: AsyncSession = Depends(get_db),
     # current_user = Depends(get_current_user),
     # authorized = Security(require_scopes, scopes=["PlanGroups:read"])
@@ -129,13 +129,13 @@ async def get_plan_groups(
         ```
     """
     query = select(PlanGroup)
-    if filters.search:
-        query = query.where(PlanGroup.group_name.ilike(f"%{filters.search}%"))
-    valid_order_fields = {"group_id", "group_name"}
-    if filters.order_by not in valid_order_fields:
-        raise HTTPException(status_code=400, detail="Invalid order_by field")
-    order_column = getattr(PlanGroup, filters.order_by)
-    query = query.order_by(asc(order_column) if filters.order_dir == "asc" else desc(order_column))
+    # if filters.search:
+    #     query = query.where(PlanGroup.group_name.ilike(f"%{filters.search}%"))
+    # valid_order_fields = {"group_id", "group_name"}
+    # if filters.order_by not in valid_order_fields:
+    #     raise HTTPException(status_code=400, detail="Invalid order_by field")
+    # order_column = getattr(PlanGroup, filters.order_by)
+    # query = query.order_by(asc(order_column) if filters.order_dir == "asc" else desc(order_column))
     # offset = (filters.page - 1) * filters.limit
     # query = query.offset(offset).limit(filters.limit)
     result = await db.execute(query)

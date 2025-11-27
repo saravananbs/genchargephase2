@@ -18,8 +18,8 @@ router = APIRouter()
 
 @router.get("/me", response_model=PaginatedReferralReward)
 async def my_referral_history(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    page: int = Query(0, ge=0),
+    size: int = Query(0, ge=0, le=100),
     status: ReferralRewardStatus | None = None,
     sort: Literal[
         "created_at_desc", "created_at_asc",

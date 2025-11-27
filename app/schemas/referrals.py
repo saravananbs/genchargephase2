@@ -30,6 +30,8 @@ class ReferralRewardOut(BaseModel):
     reward_id: int
     referrer_id: int
     referred_id: int
+    referred_user_name: Optional[str] = None
+    referred_user_phone_number: Optional[str] = None
     reward_amount: Decimal
     status: ReferralRewardStatus
     created_at: datetime

@@ -66,6 +66,16 @@ class User(Base):
 setattr(User, "autopays", relationship("AutoPay", back_populates="user", passive_deletes=True))
 setattr(
     User,
+    "autopay_credential",
+    relationship(
+        "AutoPayCredential",
+        back_populates="user",
+        passive_deletes=True,
+        uselist=False,
+    ),
+)
+setattr(
+    User,
     "referrals_given",
     relationship(
         "ReferralReward",

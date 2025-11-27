@@ -8,14 +8,15 @@ from ..schemas.referrals import (
     PaginatedReferralReward,
     ReferralRewardStatus,
 )
+from ..models.referral import ReferralReward
 
 
 async def get_my_referral_history(
     db: AsyncSession,
     *,
     current_user_id: int,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: ReferralRewardStatus | None = None,
     sort: str = "created_at_desc",
  ) -> PaginatedReferralReward:
@@ -37,7 +38,7 @@ async def get_my_referral_history(
         db, user_id=current_user_id, page=page, size=size, status=status, sort=sort
     )
     return PaginatedReferralReward(
-        items=[ReferralRewardOut.model_validate(r) for r in rows],
+        items=[_map_referral_reward(r) for r in rows],
         total=total,
         page=page,
         size=size,
@@ -70,9 +71,28 @@ async def get_all_referral_history(
         db, page=page, size=size, status=status, sort=sort
     )
     return PaginatedReferralReward(
-        items=[ReferralRewardOut.model_validate(r) for r in rows],
+        items=[_map_referral_reward(r) for r in rows],
         total=total,
         page=page,
         size=size,
         pages=ceil(total / size) if size else 0,
+    )
+
+
+def _map_referral_reward(row: ReferralReward) -> ReferralRewardOut:
+    """Convert a referral reward ORM row into the API schema."""
+    referred_user = getattr(row, "referred", None)
+    status_value = getattr(row, "status", None)
+    if hasattr(status_value, "value"):
+        status_value = status_value.value
+    return ReferralRewardOut(
+        reward_id=row.reward_id,
+        referrer_id=row.referrer_id,
+        referred_id=row.referred_id,
+        referred_user_name=getattr(referred_user, "name", None),
+        referred_user_phone_number=getattr(referred_user, "phone_number", None),
+        reward_amount=row.reward_amount,
+        status=status_value,
+        created_at=row.created_at,
+        claimed_at=row.claimed_at,
     )

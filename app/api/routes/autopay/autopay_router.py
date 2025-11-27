@@ -15,6 +15,10 @@ from ....schemas.autopay import (
     AutoPayStatus,
     AutoPayTag,
 )
+from ....schemas.autopay_credentials import (
+    AutoPayCredentialOut,
+    AutoPayCredentialUpsert,
+)
 from app.services.autopay import (
     create_user_autopay,
     get_user_autopay,
@@ -23,6 +27,10 @@ from app.services.autopay import (
     delete_user_autopay,
     list_all_autopays,
     process_due_autopays,
+)
+from app.services.autopay_credentials import (
+    fetch_user_autopay_credentials,
+    replace_user_autopay_credentials,
 )
 
 router = APIRouter()
@@ -255,6 +263,31 @@ async def list_my_autopays(
         status=status,
         tag=tag,
         sort=sort,
+    )
+
+
+@router.get("/autopay_credentials", response_model=AutoPayCredentialOut)
+async def get_autopay_credentials(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["User"])
+):
+    """Fetch the stored autopay payment credentials for the authenticated user."""
+    return await fetch_user_autopay_credentials(db, user_id=current_user.user_id)
+
+
+@router.put("/autopay_credentials", response_model=AutoPayCredentialOut)
+async def put_autopay_credentials(
+    payload: AutoPayCredentialUpsert,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    authorized = Security(require_scopes, scopes=["User"])
+):
+    """Replace the user's autopay payment credentials with the provided payload."""
+    return await replace_user_autopay_credentials(
+        db,
+        user_id=current_user.user_id,
+        obj_in=payload,
     )
 
 

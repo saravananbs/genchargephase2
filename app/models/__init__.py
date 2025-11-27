@@ -13,5 +13,22 @@ from .token_revocation import TokenRevocation
 from .transactions import Transaction
 from .user_preference import UserPreference
 from .users_archieve import UserArchieve
+from .autopay_credentials import AutoPayCredential
 
-__all__ = ["Admin", "Role", "Permission", "RolePermission", "Plan", "CurrentActivePlan", "OfferType", "Offer", "PlanGroup", "Session", "TokenRevocation", "Transaction", "UserPreference", "UserArchieve"]
+__all__ = [
+	"Admin",
+	"Role",
+	"Permission",
+	"RolePermission",
+	"Plan",
+	"CurrentActivePlan",
+	"OfferType",
+	"Offer",
+	"PlanGroup",
+	"Session",
+	"TokenRevocation",
+	"Transaction",
+	"UserPreference",
+	"UserArchieve",
+	"AutoPayCredential",
+]
