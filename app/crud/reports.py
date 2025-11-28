@@ -739,6 +739,21 @@ async def get_transactions(session: AsyncSession, filters: TransactionsReportFil
     # Normalize datetime filters to naive UTC
     filters.created_from = make_naive(filters.created_from)
     filters.created_to = make_naive(filters.created_to)
+    def normalize(v):
+        return v if isinstance(v, list) else None
+
+    filters.from_phone_numbers = normalize(filters.from_phone_numbers)
+    filters.to_phone_numbers = normalize(filters.to_phone_numbers)
+    filters.user_ids = normalize(filters.user_ids)
+    filters.txn_ids = normalize(filters.txn_ids)
+    filters.categories = normalize(filters.categories)
+    filters.txn_types = normalize(filters.txn_types)
+    filters.statuses = normalize(filters.statuses)
+    filters.sources = normalize(filters.sources)
+    filters.service_types = normalize(filters.service_types)
+    filters.plan_ids = normalize(filters.plan_ids)
+    filters.offer_ids = normalize(filters.offer_ids)
+    filters.payment_methods = normalize(filters.payment_methods)
 
     # Basic id filters
     if filters.txn_ids:

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Security
 from fastapi.encoders import jsonable_encoder
 from ....models.admins import Admin
 from ....models.users import User
+from dataclasses import asdict
 from ....dependencies.auth import get_current_user
 from ....dependencies.permissions import require_scopes
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -571,7 +572,7 @@ async def transactions_report(
         Response:
             - PDF file download with personal transaction history
     """
-    new_filters = TransactionsReportFilter(**filters.model_dump())
+    new_filters = TransactionsReportFilter(**asdict(filters))
     new_filters.user_ids = [current_user.user_id]
     result = await generate_transactions_report(session, new_filters)
 
