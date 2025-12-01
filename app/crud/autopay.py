@@ -179,7 +179,8 @@ async def get_multi_all(
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = (await db.execute(count_stmt)).scalar_one()
 
-    stmt = stmt.offset((page - 1) * size).limit(size)
+    if page or size:
+        stmt = stmt.offset((page - 1) * size).limit(size)
     result = await db.execute(stmt)
     rows = result.scalars().all()
     return rows, total

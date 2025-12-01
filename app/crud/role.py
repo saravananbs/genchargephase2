@@ -43,7 +43,7 @@ async def get_all_roles(db: AsyncSession, filters: RoleListFilters) -> Sequence[
             stmt = stmt.order_by(desc(column) if filters.sort_order == "desc" else asc(column))
     else:
         stmt = stmt.order_by(asc(Role.role_name))
-    if filters.limit and filters.skip:
+    if filters.limit or filters.skip:
         stmt = stmt.offset(filters.skip).limit(filters.limit)
     result = await db.execute(stmt)
     roles = result.scalars().unique().all()

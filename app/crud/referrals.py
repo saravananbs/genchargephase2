@@ -62,7 +62,7 @@ async def get_user_referral_rewards(
         selectinload(ReferralReward.referred)
     ).order_by(order_clause)
 
-    if page and size:
+    if page or size:
         data_stmt = data_stmt.offset((page - 1) * size).limit(size)
 
     result = await db.execute(data_stmt)

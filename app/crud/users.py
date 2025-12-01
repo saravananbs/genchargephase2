@@ -151,7 +151,8 @@ async def get_users(db: AsyncSession, filters: UserListFilters) -> Sequence[User
                 stmt = stmt.order_by(desc(column))
             else:
                 stmt = stmt.order_by(asc(column))
-    stmt = stmt.offset(filters.skip).limit(filters.limit)
+    if filters.skip > 0 or filters.limit >0:
+        stmt = stmt.offset(filters.skip).limit(filters.limit)
     result = await db.execute(stmt)
     return result.scalars().all()
 

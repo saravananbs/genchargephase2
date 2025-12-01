@@ -70,7 +70,8 @@ async def get_admins(db: AsyncSession, filters: AdminListFilters) -> Sequence[Ad
             stmt = stmt.order_by(desc(column) if filters.sort_order == "desc" else asc(column))
     else:
         stmt = stmt.order_by(desc(Admin.created_at))
-    stmt = stmt.offset(filters.skip).limit(filters.limit)
+    if filters.skip or filters.limit:
+        stmt = stmt.offset(filters.skip).limit(filters.limit)
     result = await db.execute(stmt)
     return result.scalars().all()
 

@@ -314,7 +314,7 @@ async def get_current_active_plans(
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # Pagination: apply only when both limit>0 AND offset>0 (skip otherwise)
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -384,7 +384,7 @@ async def get_offers(
 
     # Pagination: Apply only when BOTH limit>0 AND offset>0, but per your instruction to skip pagination when either is zero:
     # Let's interpret "if limit or offset is zero then no need of pagination" -> we apply pagination only when (limit>0 and offset>0)
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -478,7 +478,7 @@ async def get_plans(session: AsyncSession, filters: PlanReportFilter) -> List[Pl
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # Pagination: apply only when BOTH limit>0 AND offset>0; skip otherwise
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -572,7 +572,7 @@ async def get_referrals(session: AsyncSession, filters: ReferralReportFilter) ->
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # Pagination: apply only when BOTH limit>0 AND offset>0, skip otherwise
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -640,7 +640,7 @@ async def get_role_permissions(session: AsyncSession, filters: RolePermissionRep
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # pagination
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -721,7 +721,7 @@ async def get_sessions(session: AsyncSession, filters: SessionsReportFilter) -> 
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # Pagination: apply only when BOTH limit>0 AND offset>0
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -816,7 +816,7 @@ async def get_transactions(session: AsyncSession, filters: TransactionsReportFil
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # Pagination: apply only when both limit>0 AND offset>0 (per instruction to skip if either is zero)
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -896,7 +896,7 @@ async def get_users_archive(session: AsyncSession, filters: UsersArchiveFilter) 
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # pagination: apply only when BOTH >0
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)
@@ -981,7 +981,7 @@ async def get_users(
     stmt = stmt.order_by(asc(order_col) if filters.order_dir == "asc" else desc(order_col))
 
     # Pagination: only when BOTH limit>0 AND offset>0 (skip otherwise)
-    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 and filters.offset > 0):
+    if (filters.limit is not None and filters.offset is not None) and (filters.limit > 0 or filters.offset > 0):
         stmt = stmt.limit(filters.limit).offset(filters.offset)
 
     result = await session.execute(stmt)

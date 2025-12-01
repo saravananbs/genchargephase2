@@ -81,7 +81,7 @@ class UserListFilters(BaseModel):
     status: Optional[UserStatus] = None
     user_type: Optional[UserType] = None
     skip: int = 0
-    limit: int = 10
+    limit: int = 0
     sort_by: Optional[Literal["name", "created_at", "wallet_balance"]] = None
     sort_order: Optional[Literal["asc", "desc"]] = "asc"
 
