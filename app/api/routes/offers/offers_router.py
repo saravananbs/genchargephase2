@@ -49,9 +49,7 @@ async def create_offer_type(
 @router.get("/offer_type", response_model=List[OfferTypeOut])
 async def list_offer_types(
     filters: OfferTypeFilter = Depends(),
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
-    authorized=Security(require_scopes, scopes=["OfferType:read"])
+    db=Depends(get_db)
 ):
     """
     List all offer types with filtering and pagination.
@@ -78,9 +76,7 @@ async def list_offer_types(
 @router.get("/offer_type/{offer_type_id}", response_model=OfferTypeOut)
 async def get_offer_type(
     offer_type_id: int,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
-    authorized=Security(require_scopes, scopes=["OfferType:read"])
+    db=Depends(get_db)
 ):
     """
     Retrieve a specific offer type by ID.
@@ -304,9 +300,7 @@ async def list_offers(
 @router.get("/offers/{offer_id}", response_model=OfferResponse)
 async def get_offer(
     offer_id: int,
-    db = Depends(get_db),
-    current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Offers:read"])
+    db = Depends(get_db)
 ):
     """
     Retrieve a specific offer by ID.

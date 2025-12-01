@@ -146,9 +146,7 @@ async def get_plan_groups(
 @router.get("/plan-group/{group_id}", response_model=PlanGroupResponse)
 async def get_plan_group(
     group_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["PlanGroups:read"])
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Retrieve a specific plan group by ID.
@@ -647,9 +645,7 @@ async def get_all_plans(
 @router.get("/plan/{plan_id}", response_model=PlanResponse)
 async def get_plan_by_id(
     plan_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user),
-    authorized = Security(require_scopes, scopes=["Plans:read"])
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Retrieve a specific plan by ID.
