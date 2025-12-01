@@ -755,8 +755,10 @@ async def get_active_plans_for_users(
 
     order_column = getattr(Plan, filters.order_by, Plan.plan_id)
     query = query.order_by(asc(order_column) if filters.order_dir == "asc" else desc(order_column))
-    # offset = (filters.page - 1) * filters.limit
-    # query = query.offset(offset).limit(filters.limit)
+
+    if filters.page > 0 or filters.limit > 0:
+        offset = (filters.page - 1) * filters.limit
+        query = query.offset(offset).limit(filters.limit)
 
     result = await db.execute(query)
     plans = result.scalars().all()

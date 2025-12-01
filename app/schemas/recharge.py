@@ -37,7 +37,6 @@ class PlanOut(BaseModel):
     group_id: Optional[int] = None
     description: Optional[str] = None
     criteria: Optional[dict] = None
-    status: PlanStatus
     created_at: datetime
 
     class Config:
@@ -285,8 +284,8 @@ class UserCurrentPlanFilterParams(BaseModel):
         sort_order (Optional[SortOrder]): Sort direction (asc/desc). Defaults to desc.
     """
     # pagination
-    page: int = Field(1, ge=1, description="Page number (1-based)")
-    size: int = Field(10, ge=1, le=500, description="Items per page")
+    page: int = Field(0, ge=0, description="Page number (1-based)")
+    size: int = Field(0, ge=0, le=500, description="Items per page")
 
     # existing filters
     plan_id: Optional[int] = Field(None, description="Exact plan_id")
@@ -347,8 +346,8 @@ class CurrentPlanFilterParams(BaseModel):
         sort_order (Optional[SortOrder]): Sort direction (asc/desc). Defaults to desc.
     """
     # pagination
-    page: int = Field(1, ge=1, description="Page number (1-based)")
-    size: int = Field(10, ge=1, le=500, description="Items per page")
+    page: int = Field(0, ge=0, description="Page number (1-based)")
+    size: int = Field(0, ge=0, le=500, description="Items per page")
 
     # existing filters
     phone_number: Optional[str] = Field(None, description="Exact phone number")

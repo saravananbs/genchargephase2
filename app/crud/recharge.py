@@ -266,7 +266,8 @@ async def list_active_plans(
     stmt = stmt.order_by(order_fn(order_col))
 
     # ------------------- PAGINATION -------------------
-    stmt = stmt.offset((f.page - 1) * f.size).limit(f.size)
+    if f.page > 0 or f.size > 0:
+        stmt = stmt.offset((f.page - 1) * f.size).limit(f.size)
 
     result = await db.execute(stmt)
     plans = result.scalars().all()

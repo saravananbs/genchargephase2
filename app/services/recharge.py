@@ -460,7 +460,7 @@ async def admin_list_active_plans(
         total=total,
         page=f.page,
         size=f.size,
-        pages=(total + f.size - 1) // f.size,
+        pages=(total + f.size - 1) // f.size if f.size and f.page else 0,
     )
 
 
