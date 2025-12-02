@@ -48,5 +48,5 @@ class OfferTypeFilter(BaseModel):
     search: Optional[str] = None
     order_by: Optional[str] = Field("offer_type_id", description="Field to order by")
     order_dir: Optional[str] = Field("asc", description="asc or desc")
-    limit: Optional[int] = Field(10, ge=1, le=100)
+    limit: Optional[int] = Field(0, ge=0, le=100)
     offset: Optional[int] = Field(0, ge=0)

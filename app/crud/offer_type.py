@@ -68,7 +68,8 @@ async def get_offer_types(db: AsyncSession, filters: OfferTypeFilter):
         query = query.order_by(desc(order_column))
     else:
         query = query.order_by(asc(order_column))
-    query = query.offset(filters.offset).limit(filters.limit)
+    if filters.limit or filters.offset:
+        query = query.offset(filters.offset).limit(filters.limit)
     result = await db.execute(query)
     return result.scalars().all()
 

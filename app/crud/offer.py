@@ -135,8 +135,9 @@ async def list_public_offers(db: AsyncSession, filters: OfferFilter) -> List[Off
     col = getattr(Offer, filters.order_by)
     q = q.order_by(desc(col) if filters.order_dir == "desc" else asc(col))
 
-    offset = (filters.page - 1) * filters.limit
-    q = q.offset(offset).limit(filters.limit)
+    if filters.page or filters.limit:
+        offset = (filters.page - 1) * filters.limit
+        q = q.offset(offset).limit(filters.limit)
 
     res = await db.execute(q)
     return res.scalars().all()

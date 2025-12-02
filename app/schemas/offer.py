@@ -137,7 +137,7 @@ class OfferFilter(BaseModel):
     offer_type_id: Optional[int] = None
     is_special: Optional[bool] = None
     status: Optional[OfferStatus] = None
-    page: int = Field(1, ge=1)
-    limit: int = Field(10, ge=1, le=100)
+    page: int = Field(0, ge=0)
+    limit: int = Field(0, ge=0, le=100)
     order_by: str = Field("offer_id", description="Field to order by (offer_id, offer_name, offer_validity, created_at)")
     order_dir: str = Field("desc", pattern="^(asc|desc)$")
