@@ -82,24 +82,34 @@ async def activate_queued_plan(db: AsyncSession, user_id: int, phone_number: str
             CurrentActivePlan.valid_to < now,
         )
     )
-    for p in expired.scalars().all():
-        p.status = CurrentPlanStatus.expired
-        db.add(p)
-
-    # Activate earliest queued plan
-    queued = await db.execute(
-        select(CurrentActivePlan)
-        .where(
-            CurrentActivePlan.user_id == user_id,
-            CurrentActivePlan.phone_number == phone_number,
-            CurrentActivePlan.status == CurrentPlanStatus.queued,
-        )
-        .order_by(CurrentActivePlan.valid_from)
-    )
-    plan = queued.scalars().first()
-    if plan and plan.valid_from <= now:
-        plan.status = CurrentPlanStatus.active
+    for plan in expired.scalars().all():
+        plan.status = CurrentPlanStatus.expired
         db.add(plan)
+
+    active_stmt = select(CurrentActivePlan).where(
+        CurrentActivePlan.user_id == user_id,
+        CurrentActivePlan.phone_number == phone_number,
+        CurrentActivePlan.status == CurrentPlanStatus.active,
+    ).order_by(CurrentActivePlan.valid_from)
+    active_plan = await db.execute(active_stmt)
+    has_active = active_plan.scalars().first()
+    if not has_active:
+        queued_stmt = (
+            select(CurrentActivePlan)
+            .where(
+                CurrentActivePlan.user_id == user_id,
+                CurrentActivePlan.phone_number == phone_number,
+                CurrentActivePlan.status == CurrentPlanStatus.queued,
+            )
+            .order_by(CurrentActivePlan.valid_from)
+        )
+        queued_plan_result = await db.execute(queued_stmt)
+        next_plan = queued_plan_result.scalars().first()
+        if next_plan:
+            if next_plan.valid_from > now:
+                next_plan.valid_from = now
+            next_plan.status = CurrentPlanStatus.active
+            db.add(next_plan)
 
     await db.commit()
 
@@ -216,9 +226,10 @@ async def list_active_plans(
             selectinload(CurrentActivePlan.user),
         )
     )
-
     # ------------------- FILTERS -------------------
     if f.phone_number:
+        user_id = await get_user_by_phone(db=db, phone=f.phone_number)
+        await activate_queued_plan(db=db, phone_number=f.phone_number, user_id=user_id.user_id)
         stmt = stmt.where(CurrentActivePlan.phone_number == f.phone_number)
 
     if f.phone_number_like:
