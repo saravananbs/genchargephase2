@@ -48,7 +48,7 @@ app = FastAPI(
 
 
 add_cors_middleware(app)          
-# add_logging_middleware(app)       
+add_logging_middleware(app)       
 add_exception_middleware(app)    
 
 

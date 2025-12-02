@@ -80,8 +80,8 @@ async def get_multi_by_user(
     db: AsyncSession,
     *,
     user_id: int,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: AutoPayStatus | None = None,
     tag: AutoPayTag | None = None,
     phone_number: str | None = None,
@@ -128,7 +128,8 @@ async def get_multi_by_user(
     total = (await db.execute(count_stmt)).scalar_one()
 
     # Pagination
-    stmt = stmt.offset((page - 1) * size).limit(size)
+    if page > 0 and size > 0:
+        stmt = stmt.offset((page - 1) * size).limit(size)
     result = await db.execute(stmt)
     rows = result.scalars().all()
     return rows, total
@@ -138,8 +139,8 @@ async def get_multi_all(
     db: AsyncSession,
     *,
     phone_number: str | None = None,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: AutoPayStatus | None = None,
     tag: AutoPayTag | None = None,
     sort: Literal["created_at_desc", "created_at_asc", "next_due_date_desc", "next_due_date_asc"] = "created_at_desc",

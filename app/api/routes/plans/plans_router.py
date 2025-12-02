@@ -633,8 +633,9 @@ async def get_all_plans(
     query = query.order_by(asc(order_column) if filters.order_dir == "asc" else desc(order_column))
 
     # Pagination
-    offset = (filters.page - 1) * filters.limit
-    query = query.offset(offset).limit(filters.limit)
+    if filters.page > 0 or filters.limit > 0:
+        offset = (filters.page - 1) * filters.limit
+        query = query.offset(offset).limit(filters.limit)
 
     result = await db.execute(query)
     plans = result.scalars().all()

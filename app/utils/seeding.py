@@ -44,10 +44,10 @@ async def seed_permissions(session: AsyncSession):
     existing_permissions = existing.scalars().all()
 
     if existing_permissions:
-        print("🔹 Permissions already exist, skipping seeding.")
+        print("permissions already exist, skipping seeding.")
         return
 
-    print("🟢 Seeding permissions...")
+    print("seeding permissions...")
 
     permissions_data = [
         {"permission_id": 1, "resource": "Users", "read": True, "write": True, "delete": True, "edit": True},
@@ -72,7 +72,7 @@ async def seed_permissions(session: AsyncSession):
 
     session.add_all([Permission(**p) for p in permissions_data])
     await session.flush()
-    print("✅ Permissions seeded successfully.")
+    print("permissions seeded successfully.")
 
 
 async def seed_roles_and_role_permissions(session: AsyncSession):
@@ -97,10 +97,10 @@ async def seed_roles_and_role_permissions(session: AsyncSession):
     existing_roles = existing_roles.scalars().all()
 
     if existing_roles:
-        print("🔹 Roles already exist, skipping seeding.")
+        print("Roles already exist, skipping seeding.")
         return
 
-    print("🟢 Seeding roles...")
+    print("seeding roles...")
 
     roles_data = [
         {"role_name": "SuperAdmin"},
@@ -113,12 +113,10 @@ async def seed_roles_and_role_permissions(session: AsyncSession):
     session.add_all(roles)
     await session.flush()
 
-    # Fetch all permissions
     permissions = await session.execute(select(Permission))
     permissions = permissions.scalars().all()
     perm_by_resource = {p.resource: p for p in permissions}
 
-    # Map role permissions
     role_permissions_map = {
         "SuperAdmin": [p.permission_id for p in permissions],
         "Manager": [
@@ -147,14 +145,13 @@ async def seed_roles_and_role_permissions(session: AsyncSession):
         ],
     }
 
-    # Insert RolePermission records
     role_permissions = []
     for role in roles:
         for pid in role_permissions_map.get(role.role_name, []):
             role_permissions.append(RolePermission(role_id=role.role_id, permission_id=pid))
 
     session.add_all(role_permissions)
-    print("✅ Roles and RolePermissions seeded successfully.")
+    print("roles and RolePermissions seeded successfully.")
 
 
 async def seed_admins(session: AsyncSession):
@@ -174,20 +171,20 @@ async def seed_admins(session: AsyncSession):
     existing_admins = existing_admins.scalars().all()
 
     if existing_admins:
-        print("🔹 Admins already exist, skipping seeding.")
+        print("admins already exist, skipping seeding.")
         return
 
-    print("🟢 Seeding admins...")
+    print("seeding admins...")
 
     roles_result = await session.execute(select(Role))
     roles = roles_result.scalars().all()
 
     if not roles:
-        print("⚠️ No roles found. Please seed roles before running this.")
+        print("no roles found. Please seed roles before running this.")
         return
 
     admins_to_add = []
-    phone_base = 9000000000  # just for generating unique numbers
+    phone_base = 9000000000  
 
     for idx, role in enumerate(roles, start=1):
         for j in range(3):
@@ -203,10 +200,9 @@ async def seed_admins(session: AsyncSession):
 
     session.add_all(admins_to_add)
     await session.flush()
-    print(f"✅ Inserted {len(admins_to_add)} admins (3 per role).")
+    print(f"inserted {len(admins_to_add)} admins (3 per role).")
 
 
-# Helper to generate random codes, names, etc.
 def random_referral_code(length=6):
     """
     Generate a random referral code of given length.
@@ -273,10 +269,10 @@ async def seed_users(session: AsyncSession, count=50):
     existing_users = existing_users.scalars().all()
 
     if existing_users:
-        print("🔹 Users already exist, skipping seeding.")
+        print("users already exist, skipping seeding.")
         return
 
-    print(f"🟢 Seeding {count} users...")
+    print(f"seeding {count} users...")
 
     users = []
     used_referrals = set()
@@ -317,7 +313,7 @@ async def seed_users(session: AsyncSession, count=50):
 
     session.add_all(users)
     await session.flush()
-    print(f"✅ Successfully seeded {count} users.")
+    print(f"successfully seeded {count} users.")
 
 
 async def seed_user_archives(session: AsyncSession, count=5):
@@ -338,10 +334,10 @@ async def seed_user_archives(session: AsyncSession, count=5):
     existing_archives = existing_archives.scalars().all()
 
     if existing_archives:
-        print("🔹 User Archives already exist, skipping seeding.")
+        print("user Archives already exist, skipping seeding.")
         return
 
-    print(f"🟢 Seeding {count} user archives...")
+    print(f"seeding {count} user archives...")
 
     archives = []
     used_referrals = set()
@@ -383,7 +379,7 @@ async def seed_user_archives(session: AsyncSession, count=5):
 
     session.add_all(archives)
     await session.flush()
-    print(f"✅ Successfully seeded {count} user archives.")
+    print(f"successfully seeded {count} user archives.")
 
 
 async def seed_user_preferences(session: AsyncSession):
@@ -399,17 +395,15 @@ async def seed_user_preferences(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding user preferences...")
+    print("seeding user preferences...")
 
-    # Fetch all users
     users_result = await session.execute(select(User))
     users = users_result.scalars().all()
 
     if not users:
-        print("⚠️ No users found. Please seed users first.")
+        print("no users found. Please seed users first.")
         return
 
-    # Fetch existing preferences
     existing_prefs_result = await session.execute(select(UserPreference))
     existing_prefs = existing_prefs_result.scalars().all()
     existing_user_ids = {pref.user_id for pref in existing_prefs}
@@ -417,9 +411,8 @@ async def seed_user_preferences(session: AsyncSession):
     new_preferences = []
     for user in users:
         if user.user_id in existing_user_ids:
-            continue  # skip users who already have preferences
+            continue  
 
-        # Optionally randomize preferences to simulate real user variation
         new_preferences.append(
             UserPreference(
                 user_id=user.user_id,
@@ -435,12 +428,12 @@ async def seed_user_preferences(session: AsyncSession):
         )
 
     if not new_preferences:
-        print("🔹 All users already have preferences, skipping seeding.")
+        print("all users already have preferences, skipping seeding.")
         return
 
     session.add_all(new_preferences)
     await session.flush()
-    print(f"✅ Seeded preferences for {len(new_preferences)} new users.")
+    print(f"seeded preferences for {len(new_preferences)} new users.")
 
 
 async def seed_plan_groups_and_plans(session: AsyncSession):
@@ -459,17 +452,15 @@ async def seed_plan_groups_and_plans(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding PlanGroups and Plans...")
+    print("seeding PlanGroups and Plans...")
 
-    # Step 1: Check if PlanGroups already exist
     existing_groups = await session.execute(select(PlanGroup))
     existing_groups = existing_groups.scalars().all()
 
     if existing_groups:
-        print("🔹 Plan groups already exist, skipping seeding.")
+        print("plan groups already exist, skipping seeding.")
         return
 
-    # Step 2: Define PlanGroups
     group_names = [
         "Unlimited 5G",
         "International Roaming",
@@ -480,12 +471,11 @@ async def seed_plan_groups_and_plans(session: AsyncSession):
 
     plan_groups = [PlanGroup(group_name=name) for name in group_names]
     session.add_all(plan_groups)
-    await session.flush()  # flush to get group_ids
+    await session.flush()  
 
-    # Step 3: Create plans for each group
     plans_to_add = []
     for group in plan_groups:
-        for i in range(1, 6):  # 5 plans per group
+        for i in range(1, 6):  
             plan_type = random.choice(list(PlanType)).value
             status = random.choice(list(PlanStatus))
             plan_name = f"{group.group_name} Plan {i}"
@@ -503,7 +493,7 @@ async def seed_plan_groups_and_plans(session: AsyncSession):
                         "voice": random.choice(["Unlimited", "1000 mins"]),
                         "sms": f"{random.choice([100, 200, 300])} SMS/day",
                     },
-                    created_by=random.randint(1, 5),  # e.g., admin IDs
+                    created_by=random.randint(1, 5), 
                     price=random.choice([199, 299, 399, 499, 599, 699, 899]),
                     status=status,
                 )
@@ -511,7 +501,7 @@ async def seed_plan_groups_and_plans(session: AsyncSession):
 
     session.add_all(plans_to_add)
     await session.flush()
-    print(f"✅ Seeded {len(plan_groups)} plan groups and {len(plans_to_add)} plans.")
+    print(f"seeded {len(plan_groups)} plan groups and {len(plans_to_add)} plans.")
 
 
 async def seed_offer_types_and_offers(session: AsyncSession):
@@ -527,17 +517,15 @@ async def seed_offer_types_and_offers(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding OfferTypes and Offers...")
+    print("seeding OfferTypes and Offers...")
 
-    # Step 1: Check if OfferTypes already exist
     existing_types = await session.execute(select(OfferType))
     existing_types = existing_types.scalars().all()
 
     if existing_types:
-        print("🔹 Offer types already exist, skipping seeding.")
+        print("Offer types already exist, skipping seeding.")
         return
 
-    # Step 2: Define offer types
     offer_type_names = [
         "Festive Offers",
         "Cashback Offers",
@@ -547,12 +535,11 @@ async def seed_offer_types_and_offers(session: AsyncSession):
 
     offer_types = [OfferType(offer_type_name=name) for name in offer_type_names]
     session.add_all(offer_types)
-    await session.flush()  # make sure offer_type_id is available
+    await session.flush()  
 
-    # Step 3: Create offers for each offer type
     offers_to_add = []
     for offer_type in offer_types:
-        for i in range(1, 6):  # 5 offers per type
+        for i in range(1, 6):  
             offer_name = f"{offer_type.offer_type_name} {i}"
             validity = random.choice([7, 14, 28, 56, 84, 90])
             is_special = random.choice([True, False])
@@ -572,14 +559,14 @@ async def seed_offer_types_and_offers(session: AsyncSession):
                         "min_recharge": random.choice([99, 199, 299, 399]),
                     },
                     description=f"{offer_name} gives {price_discount}% discount with {extra_data or 'no extra data'}.",
-                    created_by=random.randint(1, 5),  # example admin id
+                    created_by=random.randint(1, 5),  
                     status=status,
                 )
             )
 
     session.add_all(offers_to_add)
     await session.flush()
-    print(f"✅ Seeded {len(offer_types)} offer types and {len(offers_to_add)} offers.")
+    print(f"seeded {len(offer_types)} offer types and {len(offers_to_add)} offers.")
 
 
 async def seed_autopay(session: AsyncSession):
@@ -598,9 +585,8 @@ async def seed_autopay(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding AutoPay entries...")
+    print("seeding AutoPay entries...")
 
-    # Fetch all users and plans
     users_result = await session.execute(select(User))
     users = users_result.scalars().all()
 
@@ -608,24 +594,23 @@ async def seed_autopay(session: AsyncSession):
     plans = plans_result.scalars().all()
 
     if not users:
-        print("⚠️ No users found. Please seed users first.")
+        print("no users found. Please seed users first.")
         return
 
     if not plans:
-        print("⚠️ No plans found. Please seed plans first.")
+        print("no plans found. Please seed plans first.")
         return
 
-    # Check if AutoPay already seeded
     existing_autopays = await session.execute(select(AutoPay))
     existing_autopays = existing_autopays.scalars().all()
     if existing_autopays:
-        print("🔹 AutoPay entries already exist, skipping seeding.")
+        print("AutoPay entries already exist, skipping seeding.")
         return
 
     autopay_entries = []
 
     for user in users:
-        num_autopays = random.randint(2, 5)  # 2–5 plans per user
+        num_autopays = random.randint(2, 5)  
         selected_plans = random.sample(plans, min(num_autopays, len(plans)))
 
         for plan in selected_plans:
@@ -646,7 +631,7 @@ async def seed_autopay(session: AsyncSession):
 
     session.add_all(autopay_entries)
     await session.flush()
-    print(f"✅ Seeded {len(autopay_entries)} AutoPay entries ({len(users)} users × 2–5 plans each).")
+    print(f"seeded {len(autopay_entries)} AutoPay entries ({len(users)} users × 2–5 plans each).")
 
 
 async def seed_current_active_plans(session: AsyncSession):
@@ -665,17 +650,15 @@ async def seed_current_active_plans(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding Current Active Plans...")
+    print("seeding Current Active Plans...")
 
-    # Step 1: Check if data already exists
     existing = await session.execute(select(CurrentActivePlan))
     existing = existing.scalars().all()
 
     if existing:
-        print("🔹 CurrentActivePlans already exist, skipping seeding.")
+        print("CurrentActivePlans already exist, skipping seeding.")
         return
 
-    # Step 2: Fetch users and plans
     users_result = await session.execute(select(User))
     users = users_result.scalars().all()
 
@@ -683,11 +666,11 @@ async def seed_current_active_plans(session: AsyncSession):
     plans = plans_result.scalars().all()
 
     if not users:
-        print("⚠️ No users found. Please seed users first.")
+        print("no users found. please seed users first.")
         return
 
     if not plans:
-        print("⚠️ No plans found. Please seed plans first.")
+        print("no plans found. please seed plans first.")
         return
 
     entries_to_add = []
@@ -698,15 +681,12 @@ async def seed_current_active_plans(session: AsyncSession):
         selected_plans = random.sample(plans, min(num_plans, len(plans)))
 
         for plan in selected_plans:
-            # Randomly decide status
             status = random.choice(list(CurrentPlanStatus)).value
 
-            # Define plan validity
-            start_offset = random.randint(-60, 30)  # some started in past, some start soon
+            start_offset = random.randint(-60, 30) 
             valid_from = now + timedelta(days=start_offset)
             valid_to = valid_from + timedelta(days=plan.validity or 28)
 
-            # Ensure validity makes sense for queued plans
             if status == CurrentPlanStatus.queued.value:
                 valid_from = now + timedelta(days=random.randint(1, 15))
                 valid_to = valid_from + timedelta(days=plan.validity or 28)
@@ -724,7 +704,7 @@ async def seed_current_active_plans(session: AsyncSession):
 
     session.add_all(entries_to_add)
     await session.flush()
-    print(f"✅ Seeded {len(entries_to_add)} CurrentActivePlan entries ({len(users)} users × 2–4 plans each).")
+    print(f"seeded {len(entries_to_add)} CurrentActivePlan entries ({len(users)} users × 2–4 plans each).")
 
 
 async def seed_backups(session: AsyncSession):
@@ -740,31 +720,27 @@ async def seed_backups(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding Backup data...")
+    print("seeding Backup data...")
 
-    # Step 1: Check if backups already exist
     existing = await session.execute(select(Backup))
     existing_backups = existing.scalars().all()
 
     if existing_backups:
-        print("🔹 Backups already exist, skipping seeding.")
+        print("backups already exist, skipping seeding.")
         return
 
     backup_targets = ["products", "orders", "users", "sessions", "plans"]
     backup_entries = []
 
     for i in range(10):
-        # Select backup data target
         data_type = random.choice(backup_targets)
 
-        # Random backup time snapshot
         timestamp = datetime.now() - timedelta(days=random.randint(0, 30), hours=random.randint(0, 23))
         snapshot_name = f"backup_{timestamp.strftime('%Y_%m_%d_%H_%M')}"
         storage_url = f"s3://my-backups/{snapshot_name}"
 
-        # Random status and size
         status = random.choices(["success", "failed"], weights=[0.8, 0.2])[0]
-        size_mb = str(random.randint(100, 1000))  # in MB
+        size_mb = str(random.randint(100, 1000))  
         desc = f"{data_type.capitalize()} backup created on {timestamp.strftime('%Y-%m-%d %H:%M')}."
         details = {
             "file_count": random.randint(5, 50),
@@ -789,7 +765,7 @@ async def seed_backups(session: AsyncSession):
 
     session.add_all(backup_entries)
     await session.flush()
-    print(f"✅ Seeded {len(backup_entries)} backup records successfully.")
+    print(f"seeded {len(backup_entries)} backup records successfully.")
 
 
 async def seed_transactions(session: AsyncSession):
@@ -805,32 +781,29 @@ async def seed_transactions(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding Transactions...")
+    print("seeding Transactions...")
 
-    # Step 1: Check if Transactions already exist
     existing = await session.execute(select(Transaction))
     existing_txns = existing.scalars().all()
 
     if existing_txns:
-        print("🔹 Transactions already exist, skipping seeding.")
+        print("transactions already exist, skipping seeding.")
         return
 
-    # Step 2: Fetch valid foreign key data
     users = (await session.execute(select(User))).scalars().all()
     plans = (await session.execute(select(Plan))).scalars().all()
     offers = (await session.execute(select(Offer))).scalars().all()
 
     if not users:
-        print("⚠️ No users found. Please seed users first.")
+        print("no users found. Please seed users first.")
         return
     if not plans:
-        print("⚠️ No plans found. Please seed plans first.")
+        print("no plans found. Please seed plans first.")
         return
     if not offers:
-        print("⚠️ No offers found. Please seed offers first.")
+        print("no offers found. Please seed offers first.")
         return
 
-    # Step 3: Prepare data for seeding
     transactions_to_add = []
     for _ in range(50):
         user = random.choice(users)
@@ -847,7 +820,6 @@ async def seed_transactions(session: AsyncSession):
         )[0].value
         payment_method = random.choice(list(PaymentMethod)).value
 
-        # Set amount logic — wallet vs service
         if category == TransactionCategory.wallet.value:
             amount = Decimal(random.randint(50, 5000))
         else:
@@ -871,10 +843,9 @@ async def seed_transactions(session: AsyncSession):
 
         transactions_to_add.append(txn)
 
-    # Step 4: Add and commit
     session.add_all(transactions_to_add)
     await session.flush()
-    print(f"✅ Seeded {len(transactions_to_add)} transactions successfully.")
+    print(f"seeded {len(transactions_to_add)} transactions successfully.")
 
 
 async def seed_referral_rewards(session: AsyncSession):
@@ -890,33 +861,28 @@ async def seed_referral_rewards(session: AsyncSession):
     Raises:
         sqlalchemy.exc.SQLAlchemyError: If DB operations fail.
     """
-    print("🟢 Seeding ReferralRewards...")
+    print("seeding ReferralRewards...")
 
-    # Step 1: Check if already seeded
     existing = await session.execute(select(ReferralReward))
     existing_rewards = existing.scalars().all()
 
     if existing_rewards:
-        print("🔹 Referral rewards already exist, skipping seeding.")
+        print("referral rewards already exist, skipping seeding.")
         return
 
-    # Step 2: Fetch all users
     users_result = await session.execute(select(User))
     users = users_result.scalars().all()
     if not users:
-        print("⚠️ No users found. Please seed users first.")
+        print("no users found. please seed users first.")
         return
 
-    # Build referral lookup map
     referral_code_map = {u.referral_code: u for u in users if u.referral_code}
 
     rewards_to_add = []
     for user in users:
-        # If user was referred by someone
         if user.referee_code and user.referee_code in referral_code_map:
             referrer = referral_code_map[user.referee_code]
 
-            # Avoid self-referral or duplicate
             if referrer.user_id == user.user_id:
                 continue
 
@@ -939,12 +905,12 @@ async def seed_referral_rewards(session: AsyncSession):
             )
 
     if not rewards_to_add:
-        print("⚠️ No referral relationships found among users.")
+        print("no referral relationships found among users.")
         return
 
     session.add_all(rewards_to_add)
     await session.flush()
-    print(f"✅ Seeded {len(rewards_to_add)} referral rewards successfully.")
+    print(f"seeded {len(rewards_to_add)} referral rewards successfully.")
 
 
 async def seed_all():
@@ -975,7 +941,7 @@ async def seed_all():
         await seed_transactions(session)
         await seed_referral_rewards(session)
         await session.commit()
-        print("🎉 Database seeding complete!")
+        print("database seeding complete!")
 
 
 if __name__ == "__main__":

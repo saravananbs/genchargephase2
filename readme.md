@@ -1,31 +1,117 @@
-This repository contains the backend for GenCharge, a mobile recharge platform implemented with a modern Python async web stack. It provides APIs for user management, plans, recharge, autopay, referrals, notifications, backups, reporting, analytics, and more.
+# GenCharge Backend
 
-## Table of contents
+> A comprehensive mobile recharge and telecom wallet backend built with FastAPI, PostgreSQL, MongoDB, and Redis
 
-- Project overview
-- Features
-- Tech stack
-- Repository layout
-- Quick start (development)
-- Environment variables
-- Database setup & seeding
-- Running tests
-- API docs
-- Contributing
-- Troubleshooting & notes
+## Table of Contents
 
-## Project overview
+- [System Overview](#system-overview)
+- [Default Credentials](#default-credentials-for-development--testing)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Setup & Installation](#setup--installation)
+- [Environment Configuration](#environment-configuration)
+- [Database Setup](#database-setup)
+- [API Documentation](#api-documentation)
+- [Seed Data](#seed-data)
 
-This backend implements core mobile recharge functionality and exposes a REST API used by mobile apps, web clients, and administrative tools. It aims to be modular, testable, and production-ready with features such as:
+---
 
-- OTP-based user authentication & authorization
-- Plan and offer management
-- Recharge and wallet operations
-- Autopay for recurring recharges
-- Referral rewards system
-- Notifications and announcements
-- Backup & restore utilities
-- Reporting and analytics endpoints
+## System Overview
+
+The **GenCharge Backend** powers a mobile recharge and digital wallet platform focused on Indian telecom users. It provides APIs for prepaid/postpaid plan discovery, one-time and recurring recharges, wallet top-ups, referral rewards, notifications, content management, analytics, and administrative operations.
+
+The system is designed as a multi-tenant backend for:
+
+- End-users managing their own mobile numbers, plans, and wallet
+- Admin teams operating offers, plans, campaigns, and support tooling
+
+### Key Capabilities
+
+- **For Administrators:**
+	- Manage admins, roles, and fine-grained permissions
+	- Configure plan groups, plans, and offer types (festive, cashback, loyalty, etc.)
+	- Monitor recharges, wallet transactions, current active plans, and autopay schedules
+	- Generate detailed reports and analytics (users, plans, offers, referrals, transactions, backups)
+	- Send announcements and in-app notifications via a centralized notification center
+	- Review contact-form submissions and audit logs (MongoDB)
+	- Manage backup metadata and trigger database backup/restore flows
+
+- **For Users:**
+	- Sign up and log in using phone number + OTP
+	- Manage profile and notification preferences
+	- Switch between prepaid/postpaid user types (where supported)
+	- Browse public plans and offers, including popular and special campaigns
+	- Recharge a mobile number and top up wallet balance
+	- View and manage current active plans and recharge history
+	- Configure Autopay for recurring recharges
+	- Use and share referral codes, earning rewards when friends join
+	- Receive announcements, reminders, and transactional notifications
+
+---
+
+## Default Credentials (For Development & Testing)
+
+> **Important:** This project primarily uses **OTP-based authentication**. There is **a hardcoded otp 111111** in the codebase.
+
+When you run the seeding pipeline (see [Seed Data](#seed-data)):
+
+- Multiple **admin accounts** are generated per role (e.g. `SuperAdmin`, `Manager`, `Support`, etc.).
+- Admin emails follow the pattern: `"<role_name_lower>_admin<index>@example.com"` (for example: `superadmin_admin1@example.com`).
+- Admin phone numbers are generated starting from `9000000001` upwards.
+
+To log in during development:
+
+- Use the normal **signup / login + OTP** flows.
+- Or, query the database for a seeded admin/user phone number and request an OTP for that number.
+
+There are intentionally **a default password for otp as 111111**; this helps for the fast paced development.
+
+---
+
+## Architecture
+
+The backend follows a **layered architecture** with clear separation of concerns.
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                      FastAPI Application                     │
+│                        (app/main.py)                        │
+└──────────────────────────────────────────────────────────────┘
+														 │
+					┌──────────────────┼──────────────────┐
+					│                  │                  │
+┌─────────▼───────┐  ┌───────▼─────────┐  ┌─────▼────────┐
+│    API Layer    │  │  Service Layer  │  │  CRUD Layer  │
+│ (app/api/routes)│──▶│  (app/services) │──▶│  (app/crud) │
+└─────────────────┘  └─────────────────┘  └──────────────┘
+					│                  │                  │
+					│                  │                  │
+┌─────────▼──────────────────▼──────────────────▼────────────┐
+│                         Data Layer                         │
+│  ┌────────────────┐   ┌──────────────────┐   ┌───────────┐ │
+│  │ PostgreSQL     │   │   MongoDB        │   │  Redis    │ │
+│  │ (Core entities │   │ (content, logs,  │   │ (cache,   │ │
+│  │  & transactions)│ │  notifications)  │   │  sessions)│ │
+│  └────────────────┘   └──────────────────┘   └───────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Architecture Components
+
+1. **API Layer** (`app/api/routes/`): FastAPI routers grouped by domain (Auth, Users, Plans, Offers, Recharge, Autopay, Referrals, Notification, Content, Backup, Reports, Analytics, etc.).
+2. **Service Layer** (`app/services/`): Business logic and orchestration; applies validation, coordinates multiple CRUD calls, and integrates external services (SMS, email, notifications).
+3. **CRUD Layer** (`app/crud/`): Data-access layer for PostgreSQL and MongoDB collections.
+4. **Models** (`app/models/`): SQLAlchemy ORM models for users, admins, plans, offers, transactions, autopay, backups, referrals, etc.
+5. **Schemas** (`app/schemas/`): Pydantic models for request/response validation and documentation.
+6. **Core** (`app/core/`): Central configuration (`config.py`), database sessions (`database.py`), MongoDB (`document_db.py`), Redis client (`redis_client.py`).
+7. **Dependencies** (`app/dependencies/`): Shared dependency-injection helpers for auth, permissions, and DB sessions.
+8. **Middleware** (`app/middleware/`): CORS, structured logging, and exception handling.
+
+On startup, `app/main.py` uses a FastAPI **lifespan** context to automatically create database tables from SQLAlchemy models and dispose the engine on shutdown.
+
+---
 
 ## Features
 
@@ -147,16 +233,6 @@ ALGORITHM=HS256
 3. Run provided SQL seed files to add an admin user and core data (see Quick start above).
 
 4. Optional: run any Python seed helper if present.
-
-## Running tests
-
-Run unit/integration tests with pytest:
-
-```fish
-pytest -q
-```
-
-Add or update tests under `app/tests/` when modifying behavior. Aim to include a happy path plus a couple edge cases for each major module (auth, plans, recharge).
 
 ## API docs
 

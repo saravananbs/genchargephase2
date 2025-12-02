@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Literal, Optional
 from enum import Enum
 from pydantic import BaseModel, Field, conint, constr
+from .users import UserResponse
+from .plans import PlanResponse
 
 
 class AutoPayStatus(str, Enum):
@@ -106,6 +108,42 @@ class PaginatedAutoPay(BaseModel):
         pages (int): Total number of pages.
     """
     items: list[AutoPayOut]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+
+# ---------- Admin-specific Response Schemas ----------
+class AutoPayOutAdmin(AutoPayOut):
+    """
+    Admin view of an autopay including nested user and plan details.
+
+    Attributes:
+        id_user_details (UserResponse | None): Details of the user corresponding to `user_id`.
+        phone_user_details (UserResponse | None): Details of the user owning `phone_number`.
+        plan_details (PlanResponse | None): Details of the plan corresponding to `plan_id`.
+    """
+    id_user_details: Optional[UserResponse] = None
+    phone_user_details: Optional[UserResponse] = None
+    plan_details: Optional[PlanResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedAutoPayAdmin(BaseModel):
+    """
+    Paginated response for admin autopay list with nested details.
+
+    Attributes:
+        items (list[AutoPayOutAdmin]): Autopay items with nested details.
+        total (int): Total number of records.
+        page (int): Current page number.
+        size (int): Page size.
+        pages (int): Total number of pages.
+    """
+    items: list[AutoPayOutAdmin]
     total: int
     page: int
     size: int

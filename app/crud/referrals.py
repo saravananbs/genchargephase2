@@ -59,7 +59,8 @@ async def get_user_referral_rewards(
     total = (await db.execute(count_stmt)).scalar_one()
 
     data_stmt = base_stmt.options(
-        selectinload(ReferralReward.referred)
+        selectinload(ReferralReward.referred),
+        selectinload(ReferralReward.referrer),
     ).order_by(order_clause)
 
     if page or size:
@@ -73,8 +74,8 @@ async def get_user_referral_rewards(
 async def get_all_referral_rewards(
     db: AsyncSession,
     *,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: ReferralRewardStatus | None = None,
     sort: Literal[
         "created_at_desc", "created_at_asc",
@@ -113,10 +114,12 @@ async def get_all_referral_rewards(
     total = (await db.execute(count_stmt)).scalar_one()
 
     data_stmt = base_stmt.options(
-        selectinload(ReferralReward.referred)
+        selectinload(ReferralReward.referred),
+        selectinload(ReferralReward.referrer),
     ).order_by(order_clause)
 
-    data_stmt = data_stmt.offset((page - 1) * size).limit(size)
+    if page > 0 or size > 0:
+        data_stmt = data_stmt.offset((page - 1) * size).limit(size)
 
     result = await db.execute(data_stmt)
     rows = result.scalars().all()

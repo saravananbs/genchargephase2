@@ -12,6 +12,7 @@ from ....schemas.autopay import (
     AutoPayUpdate,
     AutoPayOut,
     PaginatedAutoPay,
+    PaginatedAutoPayAdmin,
     AutoPayStatus,
     AutoPayTag,
 )
@@ -176,8 +177,8 @@ async def get_one_autopay(
 
 @router.get("/get_all_autopay", response_model=PaginatedAutoPay)
 async def list_my_autopays(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    page: int = Query(0, ge=0),
+    size: int = Query(0, ge=0, le=100),
     status: AutoPayStatus | None = None,
     phone_number: str | None = None,
     tag: AutoPayTag | None = None,
@@ -404,10 +405,10 @@ async def remove_autopay(
 
 
 # ====================== ADMIN ENDPOINTS ======================
-@router.get("/admin/all", response_model=PaginatedAutoPay)
+@router.get("/admin/all", response_model=PaginatedAutoPayAdmin)
 async def admin_list_all(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    page: int = Query(0, ge=0),
+    size: int = Query(0, ge=0, le=100),
     status: AutoPayStatus | None = None,
     tag: AutoPayTag | None = None,
     phone_number: str | None = None,

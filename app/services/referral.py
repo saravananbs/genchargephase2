@@ -49,8 +49,8 @@ async def get_my_referral_history(
 async def get_all_referral_history(
     db: AsyncSession,
     *,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: ReferralRewardStatus | None = None,
     sort: str = "created_at_desc",
  ) -> PaginatedReferralReward:
@@ -82,6 +82,7 @@ async def get_all_referral_history(
 def _map_referral_reward(row: ReferralReward) -> ReferralRewardOut:
     """Convert a referral reward ORM row into the API schema."""
     referred_user = getattr(row, "referred", None)
+    referrer_user = getattr(row, "referrer", None)
     status_value = getattr(row, "status", None)
     if hasattr(status_value, "value"):
         status_value = status_value.value
@@ -89,6 +90,8 @@ def _map_referral_reward(row: ReferralReward) -> ReferralRewardOut:
         reward_id=row.reward_id,
         referrer_id=row.referrer_id,
         referred_id=row.referred_id,
+        referrer_user_name=getattr(referrer_user, "name", None),
+        referrer_user_phone_number=getattr(referrer_user, "phone_number", None),
         referred_user_name=getattr(referred_user, "name", None),
         referred_user_phone_number=getattr(referred_user, "phone_number", None),
         reward_amount=row.reward_amount,

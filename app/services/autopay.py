@@ -19,9 +19,13 @@ from ..schemas.autopay import (
     AutoPayUpdate,
     AutoPayOut,
     PaginatedAutoPay,
+    PaginatedAutoPayAdmin,
+    AutoPayOutAdmin,
     AutoPayStatus,
     AutoPayTag,
 )
+from ..schemas.users import UserResponse
+from ..schemas.plans import PlanResponse
 from fastapi import HTTPException
 from starlette import status
 from ..services.recharge import subscribe_plan, RechargeRequest, TransactionSource, PaymentMethod
@@ -79,8 +83,8 @@ async def list_user_autopays(
     db: AsyncSession,
     *,
     current_user_id: int,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     status: AutoPayStatus | None = None,
     tag: AutoPayTag | None = None,
     sort: str = "created_at_desc",
@@ -181,13 +185,13 @@ async def delete_user_autopay(
 async def list_all_autopays(
     db: AsyncSession,
     *,
-    page: int = 1,
-    size: int = 20,
+    page: int = 0,
+    size: int = 0,
     phone_number: str | None = None,
     status: AutoPayStatus | None = None,
     tag: AutoPayTag | None = None,
     sort: str = "created_at_desc",
-) -> PaginatedAutoPay:
+) -> PaginatedAutoPayAdmin:
     """
     List all autopay configurations (admin view) with pagination and filtering.
 
@@ -206,8 +210,60 @@ async def list_all_autopays(
     rows, total = await get_multi_all(
         db, page=page, size=size, status=status, tag=tag, sort=sort, phone_number=phone_number
     )
-    return PaginatedAutoPay(
-        items=[AutoPayOut.model_validate(r) for r in rows],
+    # Build nested details in bulk to avoid N+1 queries
+    if not rows:
+        return PaginatedAutoPayAdmin(items=[], total=0, page=page, size=size, pages=0)
+
+    # Collect keys
+    user_ids = {r.user_id for r in rows}
+    plan_ids = {r.plan_id for r in rows}
+    phone_numbers = {r.phone_number for r in rows}
+
+    # Fetch related models in bulk
+    from sqlalchemy import select
+    from ..models.users import User
+    from ..models.plans import Plan
+
+    users_by_id: dict[int, User] = {}
+    phone_users_by_number: dict[str, User] = {}
+    plans_by_id: dict[int, Plan] = {}
+
+    if user_ids:
+        res = await db.execute(select(User).where(User.user_id.in_(user_ids)))
+        users = res.scalars().all()
+        users_by_id = {u.user_id: u for u in users}
+    if phone_numbers:
+        res = await db.execute(select(User).where(User.phone_number.in_(phone_numbers)))
+        phone_users = res.scalars().all()
+        phone_users_by_number = {u.phone_number: u for u in phone_users}
+    if plan_ids:
+        res = await db.execute(select(Plan).where(Plan.plan_id.in_(plan_ids)))
+        plans = res.scalars().all()
+        plans_by_id = {p.plan_id: p for p in plans}
+
+    items: list[AutoPayOutAdmin] = []
+    for ap in rows:
+        id_user = users_by_id.get(ap.user_id)
+        phone_user = phone_users_by_number.get(ap.phone_number)
+        plan = plans_by_id.get(ap.plan_id)
+
+        item = AutoPayOutAdmin(
+            autopay_id=ap.autopay_id,
+            user_id=ap.user_id,
+            plan_id=ap.plan_id,
+            status=ap.status,
+            phone_number=ap.phone_number,
+            tag=ap.tag,
+            next_due_date=ap.next_due_date,
+            created_at=ap.created_at,
+            id_user_details=(None if id_user is None else UserResponse.model_validate(id_user)),
+            phone_user_details=(None if phone_user is None else UserResponse.model_validate(phone_user)),
+            plan_details=(None if plan is None else PlanResponse.model_validate(plan)),
+        )
+        items.append(item)
+
+    return PaginatedAutoPayAdmin(
+        items=items,
         total=total,
         page=page,
         size=size,
